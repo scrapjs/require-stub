@@ -6,8 +6,8 @@ So I wrote a simple script to support `require` calls without any async shit, ju
 
 Look:
 ```html
-<script src="node_modules/require-stub/index.js"/>
-<script src="node_modules/chai/chai.js" data-module="chai"/>
+<script src="node_modules/require-stub/index.js"></script>
+<script src="node_modules/chai/chai.js" data-module="chai"></script>
 <script>
 	var chai = require("chai");
 </script>
@@ -18,3 +18,7 @@ Via experimental `Object.observe` in Chrome and via `beforescriptexecuted` in Fi
 Yes, it’s not very stable these days, it only works in Chrome with `experimental js` flag is on. It also would work in any browser supporting `Object.observe`, but I haven’t checked. It’s not the production-ready solution, but if you want to develop your code via tests in browser - it’s great for that.
 
 You’re welcome :)!
+
+## License
+
+MIT
