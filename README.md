@@ -6,8 +6,8 @@ So I wrote a simple script to support `require` calls without any async shit, ju
 
 Look:
 ```js
-<script src="node_modules/require-stub/index.js"></script>
-<script src="node_modules/chai/chai.js" data-module="chai"></script>
+<script src="node_modules/require-stub/index.js"/>
+<script src="node_modules/chai/chai.js" data-module="chai"/>
 <script>
 	var chai = require("chai");
 </script>
