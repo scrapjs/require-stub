@@ -1,4 +1,4 @@
-# Orthodoxical `require()` for browsers
+# `require()` for browsers
 
 Hello, browserify. You’re a great tool, but it is very annoyingly time after time compile your code `--standalone` in order to just launch tests in browser. I don’t want to launch `watchify` task just to launch tests page. I want to doubleclick it, or launch `http-server`. Also all these sourceMaps - a separate bunch of data which can always break and kill debugging.
 
