@@ -2,59 +2,57 @@
 * Require stub for browser.
 * Prepend this script in head.
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
-* Works only in browsers supporting Object.observe (Chrome with flags)
 */
-
-//module/exports changing observer to expose global variables
-var module = {};
-var exports = {};
 
 var modules = {};
 var modulePaths = {};
 
 //stupid require stub
 function require(name){
-	// console.log('require', name+'.js', modulePaths[name+'.js'])
-	return modules[name] || modules[modulePaths[name]] || modules[modulePaths[name+'.js']];
+	console.log('require', name, modules)
+	return window[name] || modules[name] || modules[modulePaths[name]] || modules[modulePaths[name+'.js']];
 }
 
-if (Object.observe) {
-	Object.observe(module, function(changes){
-		for (var i = changes.length; i--;){
-			var change = changes[i];
-			if (change.name === "exports" && change.type === "add"){
-				var exports = change.object.exports;
-				var script = document.currentScript;
+/** Setters method */
+var module = window.module = {};
+var currentExports;
 
-				//ignore inline scripts
-				if (!document.currentScript.src) return;
+Object.defineProperty(module, 'exports', {
+	configurable: true,
+	enumerable: true,
+	get: function(){
+		return currentExports;
+	},
+	set: function(v){
+		// console.log("set module", v)
 
-				//parse module name
-				var moduleName = script.getAttribute('data-module');
-				if (!moduleName) {
-					moduleName = script.getAttribute('src');
+		//save value
+		currentExports = v;
 
-					//clear name
-					moduleName = moduleName.split(/[\\\/]/).pop().split('.').shift();
-				}
+		//save script
+		var script = document.currentScript;
+		var moduleName = parseModuleName(script);
 
-				//save module path
-				modulePaths[script.src] = moduleName;
-				modulePaths[script.getAttribute('src')] = moduleName;
+ 		//ignore scripts with undefined moduleName/src
+		if (!moduleName) return;
 
-				//expose module to modules list (in order to get by require)
-				modules[moduleName] = exports;
-				delete module.exports;
-			}
-		}
+		//save module path
+		// console.log("save mod", moduleName, script)
+		modulePaths[script.src] = moduleName;
+		modulePaths[script.getAttribute('src')] = moduleName;
 
-		Object.observe(exports, function(){
-			//TODO: save exports changes to current module
-		})
+		modules[moduleName] = v;
+	}
+})
 
-	});
-}
+//try to retrieve module name from script tag
+function parseModuleName(script){
+	var moduleName = script.getAttribute('data-module');
+	if (!moduleName) {
+		moduleName = script.getAttribute('src');
 
-else {
-	//TODO: listen to `onbeforescriptexecute` on Firefox.
+		//clear name
+		moduleName = moduleName.split(/[\\\/]/).pop().split('.').shift();
+	}
+	return moduleName;
 }
