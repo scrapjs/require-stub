@@ -9,7 +9,7 @@ var modulePaths = {};
 
 //stupid require stub
 function require(name){
-	console.log('require', name, modules)
+	// console.log('require', name, modules)
 	return window[name] || modules[name] || modules[modulePaths[name]] || modules[modulePaths[name+'.js']];
 }
 
@@ -34,7 +34,7 @@ Object.defineProperty(module, 'exports', {
 		var moduleName = parseModuleName(script);
 
  		//ignore scripts with undefined moduleName/src
-		if (!moduleName) return;
+		if (!moduleName) throw Error('Can’t infer module name. Define it via `data-module="name"` attribute on script.')
 
 		//save module path
 		// console.log("save mod", moduleName, script)

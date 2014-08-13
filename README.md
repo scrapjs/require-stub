@@ -18,8 +18,7 @@ npm install require-stub
 
 ######You ask how?
 
-Via experimental `Object.observe` in Chrome and via `beforescriptexecuted` in Firefox.
-Yes, it’s not very stable these days, it only works in Chrome with `experimental js` flag is on. It also would work in any browser supporting `Object.observe`, but I haven’t checked. It’s not the production-ready solution, but if you want to develop your code via tests in browser - it’s great for that.
+Via getters/setters on global `module.exports` variable.
 
 You’re welcome :)!
 
