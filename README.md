@@ -5,7 +5,7 @@ Hello, browserify. You’re a great tool, but it is very annoyingly time after t
 So I wrote a simple script to support `require` calls without any async shit, just as node does.
 
 Look:
-```js
+```html
 <script src="node_modules/require-stub/index.js"/>
 <script src="node_modules/chai/chai.js" data-module="chai"/>
 <script>
