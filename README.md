@@ -18,12 +18,12 @@ npm install require-stub
 </script>
 ```
 
-
 You can run even run PhantomJS:
 
 ```
 mocha-phantomjs test/index.html
 ```
+
 
 
 ######You ask how?
