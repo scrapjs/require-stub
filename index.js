@@ -30,7 +30,7 @@ Object.defineProperty(module, 'exports', {
 		currentExports = v;
 
 		//save script
-		var script = document.currentScript;
+		var script = getCurrentScript();
 		var moduleName = parseModuleName(script);
 
  		//ignore scripts with undefined moduleName/src
@@ -55,4 +55,11 @@ function parseModuleName(script){
 		moduleName = moduleName.split(/[\\\/]/).pop().split('.').shift();
 	}
 	return moduleName;
+}
+
+function getCurrentScript(){
+	if (document.currentScript) return document.currentScript;
+
+	var scripts = document.getElementsByTagName('script');
+	return scripts[scripts.length - 1];
 }
