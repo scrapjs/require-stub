@@ -19,43 +19,12 @@ npm install require-stub
 ```
 
 
-You can even run PhantomJS with the next config:
-
-`test/index.html`:
-```html
-<!doctype html>
-<meta charset="utf-8">
-<title>Enot tests</title>
-
-<link rel="stylesheet" href="../node_modules/mocha/mocha.css" />
-
-<div id="mocha"></div>
-
-<script src="../node_modules/require-stub/index.js"></script>
-<script src="../node_modules/mocha/mocha.js"></script>
-<script src="../node_modules/chai/chai.js"></script>
-
-<script>
-	mocha.setup('bdd');
-</script>
-
-<script src="../index.js" data-module="my-module-name"></script>
-<script src="index.js"></script>
-
-<script>
-	if (window.mochaPhantomJS) {
-		mochaPhantomJS.run();
-	}
-	else {
-		mocha.checkLeaks();
-		mocha.run();
-	}
-</script>
-```
+You can run even run PhantomJS:
 
 ```
 mocha-phantomjs test/index.html
 ```
+
 
 ######You ask how?
 
