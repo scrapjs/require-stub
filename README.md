@@ -21,7 +21,7 @@ npm install require-stub
 </script>
 ```
 
-You can run even run PhantomJS:
+You can even run require in PhantomJS:
 
 ```
 mocha-phantomjs test/index.html
@@ -29,12 +29,10 @@ mocha-phantomjs test/index.html
 
 
 
+
 ######You ask how?
 
 Via getters/setters on global `module.exports` ans `exports` variables.
 
-You’re welcome :)!
-
-## License
-
-MIT
+Best wishes,
+Deema ©.
