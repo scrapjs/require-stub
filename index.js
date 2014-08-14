@@ -4,6 +4,10 @@
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
 */
 
+//TODO: require files without script definition, simply by `require(path)`
+//that means create script tag, insert it to the DOM, catch it’s execution ending, eval module
+//try even to require this script via npm, if nothing found
+
 var modules = {};
 var modulePaths = {};
 
