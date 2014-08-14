@@ -4,22 +4,109 @@
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
 */
 
-//TODO: require files without script definition, simply by `require(path)`
-//that means create script tag, insert it to the DOM, catch it’s execution ending, eval module
-//try even to require this script via npm, if nothing found
-
 var modules = {};
 var modulePaths = {};
+var commonModulePaths = [
+	'{{name}}.js',
+	'../{{name}}.js',
+	'../src/{{name}}.js',
+	'../node_modules/{{name}}/{{name}}.js',
+	'../node_modules/{{name}}/index.js',
+	'../node_modules/{{name}}/main.js',
+	'../node_modules/{{name}}/src/{{name}}.js',
+	'../node_modules/{{name}}/dist/{{name}}.js',
+	'node_modules/{{name}}/{{name}}.js',
+	'node_modules/{{name}}/index.js',
+	'node_modules/{{name}}/main.js',
+	'node_modules/{{name}}/src/{{name}}.js',
+	'node_modules/{{name}}/dist/{{name}}.js'
+];
+var fakeCurrentScript, fakeStack = [];
 
 //stupid require stub
 function require(name){
-	var result = window[name] || modules[name] || modules[modulePaths[name]] || modules[modulePaths[name+'.js']];
-	// console.log('require', name, result)
+	var result = getModule(name);
 
-	if (!result) throw Error('Can’t find module `' + name + '`. Please make sure the proper script tag is attached and data-module-name attribute is defined.');
+	// console.group('require', name, result)
+
+	if (!result) {
+		//try to resolve module
+		for (var i = 0; i < commonModulePaths.length; i++){
+			var path = commonModulePaths[i].replace(/{{name}}/ig, name);
+			var request = resolvePath(path);
+			if (request) {
+
+				evalScript({code: request.response, src:path, 'data-module-name': name, 'name': name });
+				// console.groupEnd()
+				return getModule(name);
+			}
+		}
+
+		// console.groupEnd()
+		throw Error('Can’t find module `' + name + '`.');
+	}
+
+	// console.groupEnd()
 
 	return result;
 }
+
+
+//retrieve module from storage by name
+function getModule(name){
+	var result = window[name] || modules[name] || modules[modulePaths[name]] || modules[modulePaths[name+'.js']];
+
+	return result;
+}
+
+//return file by path
+function resolvePath(path){
+	// console.log('resolve', path)
+	//FIXME: XHR is forbidden without server. Try to resolve via script/image/etc
+	try {
+		request = new XMLHttpRequest();
+
+		// `false` makes the request synchronous
+		request.open('GET', path, false);
+		request.send();
+	}
+
+	catch (e) {
+		return false;
+	}
+
+	finally {
+		if (request.status === 200) {
+			// console.log('SUCCESS', request);
+			return request;
+		}
+	}
+
+	return false;
+}
+
+//eval & create fake script
+function evalScript(obj){
+	var name = obj.name;
+	// console.group('eval', name)
+
+	fakeCurrentScript = obj;
+	fakeStack.push(obj);
+	fakeCurrentScript.getAttribute = function(name){
+		return this[name];
+	}
+	eval(obj.code);
+	fakeStack.pop();
+	fakeCurrentScript = fakeStack[fakeStack.length - 1];
+
+	// console.log('endeval', name, getModule(name))
+	// console.groupEnd();
+}
+
+
+
+
+
 
 var module = window.module = {};
 
@@ -39,36 +126,39 @@ Object.defineProperty(window, 'exports', {
 	set: exportsHook
 });
 
-
 //any time exports required winthin the new script - create a new module
-var currentExports, currentScript, currentModuleName;
+var lastExports, lastScript, lastModuleName;
 
+//hook for modules/exports accessors
 function exportsHook(v){
 	var script = getCurrentScript();
 
 	//if script hasn’t changed - keep current exports
-	if (!arguments.length && script === currentScript) return currentExports;
+	if (!arguments.length && script === lastScript) return lastExports;
 
 	//if script changed - create a new module with exports
-	currentScript = script;
+	lastScript = script;
 	var moduleName = parseModuleName(script);
 
 	//ignore scripts with undefined moduleName/src
 	if (!moduleName) throw Error('Can’t infer module name. Define it via `data-module="name"` attribute on script.')
 
-	currentModuleName = moduleName;
-	currentExports = v || {};
-
-	//save new module
+	//save new module path
 	modulePaths[script.src] = moduleName;
 	modulePaths[script.getAttribute('src')] = moduleName;
 
-	modules[moduleName] = currentExports;
+	//@deprecated if module exists - ignore saving
+	// if (modules[moduleName]) return modules[moduleName];
 
-	return currentExports;
+	lastModuleName = moduleName;
+	lastExports = v || {};
+
+	//else - save a new module
+	// console.log('new module', moduleName, lastExports)
+	modules[moduleName] = lastExports;
+
+	return lastExports;
 }
-
-
 
 
 //try to retrieve module name from script tag
@@ -96,7 +186,11 @@ function parseModuleName(script){
 	return moduleName;
 }
 
+
+//get current script tag
 function getCurrentScript(){
+	if (fakeCurrentScript) return fakeCurrentScript;
+
 	if (document.currentScript) return document.currentScript;
 
 	var scripts = document.getElementsByTagName('script');
