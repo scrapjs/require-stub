@@ -1,6 +1,6 @@
 {
   "name": "require-stub",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Require stub for browser",
   "main": "index.js",
   "scripts": {
@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/dfcreative/require-stub/issues"
   },
-  "homepage": "https://github.com/dfcreative/require-stub"
+  "homepage": "https://github.com/dfcreative/require-stub",
+  "devDependencies": {
+    "chai": "*",
+  }
 }

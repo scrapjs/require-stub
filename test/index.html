@@ -1,0 +1,67 @@
+<!doctype html>
+<title>Require tests</title>
+
+<script src="../index.js"></script>
+<script src="../node_modules/chai/chai.js"></script>
+<script>
+	var assert = require('chai').assert;
+</script>
+
+<!-- external module -->
+<script src="node_modules/modular/index.js"></script>
+<script>
+	var modular = require('modular');
+	assert.equal(modular, 123);
+</script>
+
+<!-- external exports -->
+<script src="node_modules/exporter/index.js"></script>
+<script>
+	var exporter = require('exporter');
+	assert.equal(exporter.x, 123)
+</script>
+
+<!-- external module.exports -->
+<script src="node_modules/modular-exporter/index.js"></script>
+<script>
+	var me = require('modular-exporter');
+	assert.equal(me.x, 1)
+</script>
+
+<!-- external relaitve path -->
+<script src="../test/special-module.js"></script>
+<script>
+	var spec = require('special-module');
+	assert.equal(spec, 4);
+</script>
+
+<!-- external name -->
+<script src="./other-module.js" data-module-name="other"></script>
+<script>
+	var oth = require('other');
+	assert.equal(oth, 2);
+</script>
+
+
+<!-- inline undefined -->
+<script>
+	assert.throws(function(){
+		exports.x = 12
+	})
+</script>
+
+<!-- inline exports -->
+<script data-module-name="inliner">
+	exports.x = 12
+</script>
+<script>
+	var i = require('inliner');
+	assert.equal(i.x, 12)
+</script>
+
+<!-- require nonexisting module -->
+<script>
+	assert.throws(function(){
+		require('abc');
+	})
+</script>
