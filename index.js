@@ -42,13 +42,8 @@ var currentExports, currentScript, currentModuleName;
 function exportsHook(v){
 	var script = getCurrentScript();
 
-	//reset current exports, if value passed
-	if (arguments.length) {
-		modules[currentModuleName] = v;
-	}
-
 	//if script hasn’t changed - keep current exports
-	if (script === currentScript) return currentExports;
+	if (!arguments.length && script === currentScript) return currentExports;
 
 	//if script changed - create a new module with exports
 	currentScript = script;

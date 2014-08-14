@@ -28,6 +28,14 @@
 	assert.equal(me.x, 1)
 </script>
 
+<!-- external module.exports 2 -->
+<script src="node_modules/modular-exporter-2/index.js"></script>
+<script>
+	var me2 = require('modular-exporter-2');
+	assert.equal(me2.x, 2)
+	assert.equal(me.x, 1)
+</script>
+
 <!-- external relaitve path -->
 <script src="../test/special-module.js"></script>
 <script>

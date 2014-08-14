@@ -1,6 +1,6 @@
 {
   "name": "require-stub",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Require stub for browser",
   "main": "index.js",
   "scripts": {
@@ -22,6 +22,6 @@
   },
   "homepage": "https://github.com/dfcreative/require-stub",
   "devDependencies": {
-    "chai": "*",
+    "chai": "*"
   }
 }
