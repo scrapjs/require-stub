@@ -13,8 +13,8 @@ npm install require-stub
 
 ```html
 <script src="node_modules/require-stub/index.js"></script>
-<script src="node_modules/chai/chai.js" data-module="chai"></script>
-<script src="node_modules/enot/index.js" data-module="enot"></script>
+<script src="node_modules/chai/chai.js" data-module-name="chai"></script>
+<script src="node_modules/enot/index.js" data-module-name="enot"></script>
 <script>
 	var chai = require("chai");
 	var enot = require("enot");
