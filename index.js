@@ -31,19 +31,19 @@ function require(name){
 
 	if (!result) {
 		//try to resolve module
-		for (var i = 0; i < commonModulePaths.length; i++){
-			var path = commonModulePaths[i].replace(/{{name}}/ig, name);
-			var request = resolvePath(path);
-			if (request) {
+		// for (var i = 0; i < commonModulePaths.length; i++){
+		// 	var path = commonModulePaths[i].replace(/{{name}}/ig, name);
+		// 	var request = resolvePath(path);
+		// 	if (request) {
 
-				evalScript({code: request.response, src:path, 'data-module-name': name, 'name': name });
-				// console.groupEnd()
-				return getModule(name);
-			}
-		}
+		// 		evalScript({code: request.response, src:path, 'data-module-name': name, 'name': name });
+		// 		// console.groupEnd()
+		// 		return getModule(name);
+		// 	}
+		// }
 
 		// console.groupEnd()
-		throw Error('Can’t find module `' + name + '`.');
+		throw Error('Can’t find module `' + name + '`. Include script first.');
 	}
 
 	// console.groupEnd()
