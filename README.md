@@ -34,6 +34,6 @@ mocha-phantomjs test/index.html
 
 Via getters/setters on global `module.exports` ans `exports` variables.
 
-Best wishes,
+Love,
 
 Deema ©.
