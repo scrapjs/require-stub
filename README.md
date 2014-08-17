@@ -18,24 +18,30 @@ npm install require-stub
 
 ```html
 <script src="node_modules/require-stub/index.js"></script>
-<script src="node_modules/chai/chai.js" data-module-name="chai"></script>
-<script src="node_modules/enot/index.js" data-module-name="enot"></script>
+<script src="node_modules/chai/chai.js"></script>
+<script src="node_modules/enot/index.js"></script>
 <script>
 	var chai = require("chai");
 	var enot = require("enot");
 </script>
 ```
 
-You can even run require in PhantomJS:
 
+If something goes wrong, try to set `data-module-name` on script:
+
+```html
+<script src="../index.js" data-module-name="special-module"></script>
+<script>
+require('special-module');
+</script>
 ```
-mocha-phantomjs test/index.html
-```
+
+If that doesn’t help, seems that you have a circular dependency within modules, so try to avoid it.
+If you’re sure that it’s not, then report a [bug](https://github.com/dfcreative/require-stub/issues).
 
 
 
-
-######You ask how?
+###### How does it work?
 
 Via getters/setters on global `module.exports` ans `exports` variables.
 
