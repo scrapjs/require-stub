@@ -73,3 +73,10 @@
 		require('abc');
 	})
 </script>
+
+<!-- Short module name -->
+<script src="./src/short-module.js"></script>
+<script>
+	var a = require('short-module');
+	assert.equal(a, 1)
+</script>

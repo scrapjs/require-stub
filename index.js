@@ -3,10 +3,47 @@
 * Prepend this script in head.
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
 */
+(function(global){
+//export function
+global.require = require;
 
-var modules = {};
-var modulePaths = {};
-var commonModulePaths = [
+//stupid require stub
+function require(name){
+	var result = getModule(name);
+
+	// console.group('require', name, result)
+
+	if (!result) {
+		if (require.lookUpModules) {
+			//try to resolve module
+			for (var i = 0; i < commonModulePaths.length; i++){
+				var path = commonModulePaths[i].replace(/{{name}}/ig, name);
+				var request = resolveFile(path);
+				if (request) {
+
+					evalScript({code: request.response, src:path, 'data-module-name': name, 'name': name });
+					// console.groupEnd()
+					return getModule(name);
+				}
+			}
+		}
+
+		console.groupEnd()
+		throw Error('Can’t find module `' + name + '`, include it first.');
+	}
+
+	// console.groupEnd()
+
+	return result;
+}
+
+//try to look up for script (causes 404 requests)
+require.lookUpModules = false;
+
+//modules storage
+var modules = require.modules = {};
+var modulePaths = require.modulePaths = {};
+var commonModulePaths = require.commonModulePaths = [
 	'{{name}}.js',
 	'../{{name}}.js',
 	'../src/{{name}}.js',
@@ -21,46 +58,34 @@ var commonModulePaths = [
 	'node_modules/{{name}}/src/{{name}}.js',
 	'node_modules/{{name}}/dist/{{name}}.js'
 ];
+
 var fakeCurrentScript, fakeStack = [];
-
-//stupid require stub
-function require(name){
-	var result = getModule(name);
-
-	// console.group('require', name, result)
-
-	if (!result) {
-		//try to resolve module
-		// for (var i = 0; i < commonModulePaths.length; i++){
-		// 	var path = commonModulePaths[i].replace(/{{name}}/ig, name);
-		// 	var request = resolvePath(path);
-		// 	if (request) {
-
-		// 		evalScript({code: request.response, src:path, 'data-module-name': name, 'name': name });
-		// 		// console.groupEnd()
-		// 		return getModule(name);
-		// 	}
-		// }
-
-		// console.groupEnd()
-		throw Error('Can’t find module `' + name + '`. Include script first.');
-	}
-
-	// console.groupEnd()
-
-	return result;
-}
 
 
 //retrieve module from storage by name
 function getModule(name){
-	var result = window[name] || modules[name] || modules[modulePaths[name]] || modules[modulePaths[name+'.js']];
+	var currDir = getDir(getCurrentScript().src);
+	var resolvedName =  resolvePath(currDir + name);
+	var result = window[name] || modules[name] || modules[modulePaths[resolvedName]] || modules[modulePaths[resolvedName+'.js']];
 
 	return result;
 }
+//return dir from path
+function getDir(path){
+	var arr = path.split(/[\\\/]/);
+	arr.pop();
+	return arr.join('/') + '/';
+}
+//return absolute path
+function resolvePath(path){
+	var a = document.createElement('a');
+	a.href = path;
+	return a.href;
+}
+
 
 //return file by path
-function resolvePath(path){
+function resolveFile(path){
 	// console.log('resolve', path)
 	//FIXME: XHR is forbidden without server. Try to resolve via script/image/etc
 	try {
@@ -107,7 +132,6 @@ function evalScript(obj){
 
 
 
-
 var module = window.module = {};
 
 // Listen to `module.exports` change
@@ -141,7 +165,7 @@ function exportsHook(v){
 	var moduleName = parseModuleName(script);
 
 	//ignore scripts with undefined moduleName/src
-	if (!moduleName) throw Error('Can’t infer module name. Define it via `data-module="name"` attribute on script.')
+	if (!moduleName) throw Error('Can’t infer module name. Define it via `data-module="name"` attribute on the script.')
 
 	//save new module path
 	modulePaths[script.src] = moduleName;
@@ -196,3 +220,6 @@ function getCurrentScript(){
 	var scripts = document.getElementsByTagName('script');
 	return scripts[scripts.length - 1];
 }
+
+
+})(window);
