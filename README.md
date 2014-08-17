@@ -3,9 +3,14 @@
 Hello, browserify.
 
 
-You’re a great tool! But sometimes it is very annoying to compile your code `--standalone` in order to just launch tests in browser. I don’t want to launch `watchify` task just to launch tests page. I want to doubleclick it, or launch `http-server` in the project’s folder. Also all these sourceMaps - a separate bunch of data which can always break and kill debugging.
+You’re a great tool for production usage of require modules! 
 
-So I wrote a simple script to support `require` calls without any async shit, just as node does. It wasn’t that difficult at all.
+But sometimes in development it is very annoying to compile your code `--standalone` in order just to launch tests in browser. I don’t want to run `watchify` task for getting my `test.html` either — it (tends to break)[https://github.com/substack/watchify/issues/83] and it always has a lag of compilation. Also all these sourceMaps — a separate bunch of data increasing the size of files and which can always break and kill debugging.
+
+I want just to doubleclick the `test.html`, or launch `http-server` in the project’s folder, and develop via tests as I used to when I didn’t know about node modules.
+
+So I wrote a simple script to support `require` calls without any async things, just as node does. Just include your modules as scripts avoiding circular dependencies.
+
 
 ```shell
 npm install require-stub
