@@ -80,3 +80,9 @@
 	var a = require('short-module');
 	assert.equal(a, 1)
 </script>
+
+<!-- Nested module -->
+<script src="./node_modules/inner/node_modules/innerinner/index.js"></script>
+<script>
+	assert.equal(require('innerinner'), 1)
+</script>

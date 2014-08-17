@@ -192,10 +192,12 @@ function parseModuleName(script){
 
 	//plugin is in the node_modules
 	var path = script.src;
-	//FIXME: catch dirname
-	var matchResult = /node_modules[\/\\]([a-zA-Z0-9-_\.\s\&\$\#\@\(\)\:]+)/.exec(path);
 
-	if (matchResult) {
+	//catch dirname after last node_modules dirname, if any
+	var idx = path.lastIndexOf('node_modules');
+	if (idx >= 0){
+		path = path.slice(idx);
+		var matchResult = /node_modules[\/\\]([a-zA-Z0-9-_\.\s\&\$\#\@\(\)\:]+)/.exec(path);
 		moduleName = matchResult[1];
 	}
 
