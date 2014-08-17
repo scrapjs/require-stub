@@ -28,8 +28,8 @@ function require(name){
 			}
 		}
 
-		console.groupEnd()
-		throw Error('Can’t find module `' + name + '`, include it first.');
+		// console.groupEnd()
+		throw Error('Can’t find module `' + name + '` in ' + getCurrentScript().src + ', include it first.');
 	}
 
 	// console.groupEnd()
