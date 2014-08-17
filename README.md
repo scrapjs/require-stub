@@ -9,7 +9,7 @@ But sometimes in development it is very annoying to compile your code `--standal
 
 I want just to doubleclick the `test.html`, or launch `http-server` in the project’s folder, and develop via tests as I used to when I didn’t know about node modules.
 
-So I wrote a simple script to support `require` calls without any async things, just as node does. Just include your modules as scripts avoiding circular dependencies.
+So I wrote a simple script to support `require` calls synchronously. Include your modules as scripts avoiding circular dependencies and that’s all.
 
 
 ```shell
@@ -39,6 +39,6 @@ mocha-phantomjs test/index.html
 
 Via getters/setters on global `module.exports` ans `exports` variables.
 
-Love,
+Best wishes,
 
 Deema ©.
