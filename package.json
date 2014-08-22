@@ -1,6 +1,6 @@
 {
   "name": "require-stub",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Require stub for browser",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,7 @@
     "commonjs",
     "browserify"
   ],
-  "author": "Deema Eevanov",
+  "author": "Deema Evanov",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/dfcreative/require-stub/issues"

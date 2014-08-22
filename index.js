@@ -9,6 +9,10 @@ global.require = require;
 
 //stupid require stub
 function require(name){
+	if (!name) return;
+
+	name = name.toLowerCase();
+
 	var result = getModule(name);
 
 	// console.group('require', name, result)
@@ -209,7 +213,7 @@ function parseModuleName(script){
 		moduleName = moduleName.split(/[\\\/]/).pop().split('.').shift();
 	}
 
-	return moduleName;
+	return moduleName.toLowerCase();
 }
 
 

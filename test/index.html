@@ -86,3 +86,10 @@
 <script>
 	assert.equal(require('innerinner'), 1)
 </script>
+
+<!-- CamelCased module -->
+<script src="./CamelModule.js" data-module-name="CamelModule"></script>
+<script>
+	assert.equal(require('camelmodule'), 'CamelModuleExports')
+	assert.equal(require('CamelModule'), 'CamelModuleExports')
+</script>
