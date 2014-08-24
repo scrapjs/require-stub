@@ -3,7 +3,7 @@
 Hello, browserify.
 
 
-You’re a great tool for production usage of require modules!
+You’re a great tool for production usage of CommonJS modules.
 
 But sometimes in development it is very annoying to compile your code `--standalone` in order just to launch tests in browser. I don’t want to run `watchify` task for getting my `test.html` either — it [tends to break](https://github.com/substack/watchify/issues/83) and it always has a lag of compilation. Also all these sourceMaps — a separate bunch of data increasing the size of files and which can always [break debugging](https://github.com/visionmedia/mocha/issues/550).
 
