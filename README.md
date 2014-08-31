@@ -1,5 +1,9 @@
 # Broswer `require()` for testing purposes
 
+TODO: autoinit of modules:
+- save each module found to the localStorage with resolved path;
+- on the next load of the page, insert wrapped scripts after the self script.
+
 Hello, browserify.
 
 

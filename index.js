@@ -4,6 +4,55 @@
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
 */
 (function(global){
+if (global.require) {
+	throw Error('Turn off `require-stub`: another `require` is on.');
+	return;
+}
+
+var prefix = 'require-stub-';
+var firstRun = !localStorage.getItem(prefix + 'ready');
+
+//try to look up for script (causes 404 requests)
+require.lookUpModules = false;
+
+//modules storage
+var modules = require.modules = {};
+var modulePaths = require.modulePaths = {};
+var commonModulePaths = require.commonModulePaths = [
+	'{{name}}.js',
+	'./{{name}}.js',
+	'../{{name}}.js',
+	'../src/{{name}}.js',
+	'../test/{{name}}.js',
+	'../node_modules/{{name}}/{{name}}.js',
+	'../node_modules/{{name}}/index.js',
+	'../node_modules/{{name}}/main.js',
+	'../node_modules/{{name}}/src/{{name}}.js',
+	'../node_modules/{{name}}/lib/{{name}}.js',
+	'../node_modules/{{name}}/lib/index.js',
+	'../node_modules/{{name}}/dist/{{name}}.js',
+	'node_modules/{{name}}/{{name}}.js',
+	'node_modules/{{name}}/index.js',
+	'node_modules/{{name}}/main.js',
+	'node_modules/{{name}}/src/{{name}}.js',
+	'node_modules/{{name}}/lib/{{name}}.js',
+	'node_modules/{{name}}/lib/index.js',
+	'node_modules/{{name}}/dist/{{name}}.js'
+];
+
+//script run emulation
+var fakeCurrentScript, fakeStack = [];
+
+if (firstRun){
+	//save the fact that firstRun has passed
+	// if (firstRun) localStorage.setItem(prefix + 'ready', true);
+
+	//lookUp for modules first time
+	// require.lookUpModules = true;
+}
+
+
+
 //export function
 global.require = require;
 
@@ -24,7 +73,7 @@ function require(name){
 				var path = commonModulePaths[i].replace(/{{name}}/ig, name);
 				var request = resolveFile(path);
 				if (request) {
-
+					// console.log('found script', request)
 					evalScript({code: request.response, src:path, 'data-module-name': name, 'name': name });
 					// console.groupEnd()
 					return getModule(name);
@@ -36,34 +85,11 @@ function require(name){
 		throw Error('Can’t find module `' + name + '` in ' + getCurrentScript().src + ', include it first.');
 	}
 
-	// console.groupEnd()
+	console.groupEnd()
 
 	return result;
 }
 
-//try to look up for script (causes 404 requests)
-require.lookUpModules = false;
-
-//modules storage
-var modules = require.modules = {};
-var modulePaths = require.modulePaths = {};
-var commonModulePaths = require.commonModulePaths = [
-	'{{name}}.js',
-	'../{{name}}.js',
-	'../src/{{name}}.js',
-	'../node_modules/{{name}}/{{name}}.js',
-	'../node_modules/{{name}}/index.js',
-	'../node_modules/{{name}}/main.js',
-	'../node_modules/{{name}}/src/{{name}}.js',
-	'../node_modules/{{name}}/dist/{{name}}.js',
-	'node_modules/{{name}}/{{name}}.js',
-	'node_modules/{{name}}/index.js',
-	'node_modules/{{name}}/main.js',
-	'node_modules/{{name}}/src/{{name}}.js',
-	'node_modules/{{name}}/dist/{{name}}.js'
-];
-
-var fakeCurrentScript, fakeStack = [];
 
 
 //retrieve module from storage by name
@@ -181,9 +207,18 @@ function exportsHook(v){
 	lastModuleName = moduleName;
 	lastExports = v || {};
 
-	//else - save a new module
-	// console.log('new module', moduleName, lastExports)
+	// console.log('new module', moduleName);
+	//else - save a new module (e.g. enot/index.js)
 	modules[moduleName] = lastExports;
+
+	//save no-js module name (e.g. enot/index)
+	if (/\.js$/.test(moduleName)) moduleName = moduleName.slice(0, -3);
+	modules[moduleName] = lastExports;
+
+	//save package name (e.g. enot)
+	moduleName = moduleName.split(/[\\\/]/)[0];
+	modules[moduleName] = lastExports;
+
 
 	return lastExports;
 }
@@ -194,6 +229,9 @@ function parseModuleName(script){
 	//name is clearly defined
 	var moduleName = script.getAttribute('data-module-name');
 
+	//return parsed name, if pointed
+	if (moduleName) return moduleName.toLowerCase();
+
 	//plugin is in the node_modules
 	var path = script.src;
 
@@ -201,7 +239,7 @@ function parseModuleName(script){
 	var idx = path.lastIndexOf('node_modules');
 	if (idx >= 0){
 		path = path.slice(idx);
-		var matchResult = /node_modules[\/\\]([a-zA-Z0-9-_\.\s\&\$\#\@\(\)\:]+)/.exec(path);
+		var matchResult = /node_modules[\/\\](.+)/.exec(path);
 		moduleName = matchResult[1];
 	}
 
