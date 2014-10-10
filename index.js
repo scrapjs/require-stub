@@ -199,6 +199,7 @@ function exportsHook(v){
 
 	//save new module path
 	modulePaths[script.src] = moduleName;
+	modulePaths[script.src.toLowerCase()] = moduleName;
 	modulePaths[script.getAttribute('src')] = moduleName;
 
 	//@deprecated if module exists - ignore saving
