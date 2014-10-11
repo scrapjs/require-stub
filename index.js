@@ -85,7 +85,7 @@ function require(name){
 		throw Error('Can’t find module `' + name + '` in ' + getCurrentScript().src + ', include it first.');
 	}
 
-	console.groupEnd()
+	// console.groupEnd()
 
 	return result;
 }
@@ -96,7 +96,7 @@ function require(name){
 function getModule(name){
 	var currDir = getDir(getCurrentScript().src);
 	var resolvedName =  resolvePath(currDir + name);
-	var result = window[name] || modules[name] || modules[modulePaths[resolvedName]] || modules[modulePaths[resolvedName+'.js']];
+	var result = window[name] || window[name[0].toUpperCase() + name.slice(1)] || modules[name] || modules[modulePaths[resolvedName]] || modules[modulePaths[resolvedName+'.js']];
 
 	return result;
 }
