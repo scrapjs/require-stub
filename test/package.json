@@ -1,0 +1,7 @@
+{
+	"name": "require-stub-test",
+	"dependencies": {
+		"x": "*",
+		"inner": "*"
+	}
+}
