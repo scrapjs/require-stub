@@ -2,7 +2,7 @@
 <title>Require tests</title>
 
 <script src="../index.js"></script>
-<!-- <script src="../node_modules/chai/chai.js"></script> -->
+<script src="../node_modules/chai/chai.js"></script>
 <script>
 	var assert = require('chai').assert;
 </script>
@@ -91,6 +91,10 @@
 <script>
 	assert.throws(function(){
 		require('abc');
+	});
+
+	window.addEventListener('load', function(){
+		console.log('abc error is ok')
 	})
 </script>
 
@@ -103,6 +107,10 @@
 
 <!-- package.json paths -->
 <script>
+	window.addEventListener('load', function(){
+		console.log('none error is ok')
+	});
+
 	var x = require('x');
 	assert.equal(x.x, 1);
 	assert.equal(x.y, 2);

@@ -5,7 +5,6 @@
 */
 
 //TODO: wrap requirements into scopes
-//TODO: force errors bubble up
 
 (function(global){
 if (global.require) {
@@ -32,6 +31,35 @@ var packages = {};
 /** stack of errors to log */
 var errors = [];
 
+/** list of native node modules */
+var nativeModules = {
+	'assert': true,
+	'buffer': true,
+	'child_process': true,
+	'cluster': true,
+	'crypto': false,
+	'dns': true,
+	'domain': true,
+	'events': true,
+	'fs': true,
+	'http': true,
+	'https': true,
+	'net': true,
+	'os': true,
+	'path': true,
+	'punycode': true,
+	'querystring': true,
+	'readline': true,
+	'stream': true,
+	'string_decoder': true,
+	'tls': true,
+	'dgram': true,
+	'url': true,
+	'util': true,
+	'vm': true,
+	'zlib': true
+};
+
 
 //script run emulation
 var fakeCurrentScript, fakeStack = [];
@@ -52,7 +80,7 @@ if (firstRun){
 	require.lookUpModules = true;
 
 	//reload page, when doc loaded
-	global.addEventListener('load', function(){
+	global.addEventListener('DOMContentLoaded', function(){
 		if (errors.length) {
 			console.log('\nFailed to load requirements.\n');
 			console.groupEnd();
@@ -95,7 +123,8 @@ global.require = require;
 function require(name){
 	if (!name) throw Error('Bad module name `' + name + '`');
 
-	if (errors.length) return;
+	//ignore errorred previous requires
+	// if (errors.length) return;
 
 	console.groupCollapsed('require(\'' + name + '\')  ∈ ', getCurrentScript().src || global.location + '');
 
@@ -111,14 +140,19 @@ function require(name){
 
 	//if not - try to look up for module
 	if (require.lookUpModules) {
-
-
 		//clean js suffix
 		name = unjs(name);
 
 		//try to reach module by path
+		//./chai/a.js
 		var path = getAbsolutePath(currDir + name + '.js');
 		var sourceCode = requestFile(path);
+
+		//./chai/a/index.js
+		if (!sourceCode) {
+			path = getAbsolutePath(currDir + name + '/index.js');
+			sourceCode = requestFile(path);
+		}
 
 		//if found - eval script
 		if (sourceCode) {
@@ -129,15 +163,16 @@ function require(name){
 
 
 		//if is not found, try to reach dependency from the current script package.json
-		console.log('load dependency from `' + currDir + 'package.json`');
 		var pkg = requestClosestPkg(currDir);
 		if (pkg) {
 			var pkgDir = pkg._dir;
+			console.log('load dependency from', pkgDir + 'package.json');
 
 			//try to reach dependency’s package.json and get path from it
 			var depPkg = requestPkg(pkgDir + 'node_modules/' + name + '/');
 			if (depPkg) {
 				if (!depPkg.main) depPkg.main = 'index.js';
+				else depPkg.main = unjs(depPkg.main) + '.js';
 				path = depPkg._dir + depPkg.main;
 				sourceCode = requestFile(path);
 				if (sourceCode) {
@@ -215,6 +250,11 @@ function require(name){
 
 	//close require group
 	console.groupEnd();
+
+
+	//force native modules throw error
+	if (nativeModules[name]) throw Error('Can’t include native module `' + name + '` in browser');
+
 
 	//save error to log
 	var scriptSrc = getCurrentScript().src;
