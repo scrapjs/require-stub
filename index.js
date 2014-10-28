@@ -3,6 +3,10 @@
 * Prepend this script in head.
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
 */
+
+//TODO: wrap requirements into scopes
+//TODO: force errors bubble up
+
 (function(global){
 if (global.require) {
 	throw Error('Turn off `require-stub`: another `require` is on.');
@@ -25,6 +29,9 @@ var modulePaths = require.modulePaths = {};
 /** packages storage: `moduleName:package`, `path:package` */
 var packages = {};
 
+/** stack of errors to log */
+var errors = [];
+
 
 //script run emulation
 var fakeCurrentScript, fakeStack = [];
@@ -45,18 +52,25 @@ if (firstRun){
 	require.lookUpModules = true;
 
 	//reload page, when doc loaded
-	document.addEventListener('load', function(){
-		console.log(
-			'\n\nSuccessfully loaded all requirements. Reloading.\n\n' +
-			'--- ✂ ---\n\n'
-		);
-		console.groupEnd();
+	global.addEventListener('load', function(){
+		if (errors.length) {
+			console.log('\nFailed to load requirements.\n');
+			console.groupEnd();
+			errors.forEach(function(e){
+				console.error('RequireStub: ' + e.message);
+			});
+		}
+		else {
+			console.log(
+				'\nSuccessfully loaded all requirements.\n'
+			);
+			console.groupEnd();
+		}
 	});
 }
 
 
 console.groupCollapsed('get package.json')
-
 
 // http://localhost:8000/
 var rootPath = getAbsolutePath('/');
@@ -81,7 +95,9 @@ global.require = require;
 function require(name){
 	if (!name) throw Error('Bad module name `' + name + '`');
 
-	console.groupCollapsed('require', name);
+	if (errors.length) return;
+
+	console.groupCollapsed('require(\'' + name + '\')  ∈ ', getCurrentScript().src || global.location + '');
 
 	//try to fetch existing module
 	var result = getModule(unjs(name.toLowerCase()));
@@ -90,11 +106,12 @@ function require(name){
 		return result;
 	}
 
+	//get current script dir
+	var currDir = getDir(getAbsolutePath(getCurrentScript().src));
+
 	//if not - try to look up for module
 	if (require.lookUpModules) {
 
-		//get current script dir
-		var currDir = getDir(getAbsolutePath(getCurrentScript().src));
 
 		//clean js suffix
 		name = unjs(name);
@@ -105,8 +122,8 @@ function require(name){
 
 		//if found - eval script
 		if (sourceCode) {
-			evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 			console.groupEnd();
+			evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 			return getModule(name);
 		}
 
@@ -124,8 +141,8 @@ function require(name){
 				path = depPkg._dir + depPkg.main;
 				sourceCode = requestFile(path);
 				if (sourceCode) {
-					evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 					console.groupEnd();
+					evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 					return getModule(name);
 				}
 			}
@@ -139,8 +156,8 @@ function require(name){
 				path = tPkg._dir + tPkg.main;
 				sourceCode = requestFile(path);
 				if (sourceCode) {
-					evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 					console.groupEnd();
+					evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 					return getModule(name);
 				}
 			}
@@ -165,8 +182,8 @@ function require(name){
 			path = currDir + path;
 			sourceCode = requestFile(path);
 			if (sourceCode) {
-				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 				console.groupEnd();
+				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 				return getModule(name);
 			}
 		}
@@ -177,8 +194,8 @@ function require(name){
 			path = currPath + path;
 			sourceCode = requestFile(path);
 			if (sourceCode) {
-				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 				console.groupEnd();
+				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 				return getModule(name);
 			}
 		}
@@ -189,8 +206,8 @@ function require(name){
 			path = rootPath + path;
 			sourceCode = requestFile(path);
 			if (sourceCode) {
-				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 				console.groupEnd();
+				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
 				return getModule(name);
 			}
 		}
@@ -199,7 +216,14 @@ function require(name){
 	//close require group
 	console.groupEnd();
 
-	throw Error('Can’t find module `' + name + '` in `' + currDir + '`. Possibly it is not installed. Please, include it manually.');
+	//save error to log
+	var scriptSrc = getCurrentScript().src;
+	scriptSrc = scriptSrc || global.location + '';
+	var error = new Error('Can’t find module `' + name + '` in `' + scriptSrc + '`. Possibly the module is not installed. Please, install it or include script on the page.');
+
+	errors.push(error);
+
+	throw error;
 }
 
 
