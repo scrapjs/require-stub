@@ -17,7 +17,7 @@ var firstRun = !localStorage.getItem(prefix + 'ready');
 
 
 /** try to look up for script (causes 404 requests) */
-require.lookUpModules = false;
+require.lookUpModules = true;
 
 
 /** modules storage */
@@ -65,40 +65,7 @@ var nativeModules = {
 var fakeCurrentScript, fakeStack = [];
 
 
-if (firstRun){
-	//save the fact that firstRun has passed
-	// if (firstRun) localStorage.setItem(prefix + 'ready', true);
-
-	//display cut intro
-	console.groupCollapsed('--- ✂ require-stub ---');
-	console.log(
-		'\nAttempt to look up for requirements.\n' +
-		'Ignore the XMLHttpRequest errors below.\n'
-	);
-
-	//lookUp for modules first time
-	require.lookUpModules = true;
-
-	//reload page, when doc loaded
-	global.addEventListener('DOMContentLoaded', function(){
-		if (errors.length) {
-			console.log('\nFailed to load requirements.\n');
-			console.groupEnd();
-			errors.forEach(function(e){
-				console.error('RequireStub: ' + e.message);
-			});
-		}
-		else {
-			console.log(
-				'\nSuccessfully loaded all requirements.\n'
-			);
-			console.groupEnd();
-		}
-	});
-}
-
-
-console.groupCollapsed('get package.json')
+console.groupCollapsed('package.json')
 
 // http://localhost:8000/
 var rootPath = getAbsolutePath('/');
@@ -126,7 +93,7 @@ function require(name){
 	//ignore errorred previous requires
 	// if (errors.length) return;
 
-	console.groupCollapsed('require(\'' + name + '\')  ∈ ', getCurrentScript().src || global.location + '');
+	console.groupCollapsed('require(\'' + name + '\') ', getCurrentScript().src || global.location + '');
 
 	//try to fetch existing module
 	var result = getModule(unjs(name.toLowerCase()));
