@@ -352,9 +352,16 @@ function evalScript(obj){
 	fakeCurrentScript.getAttribute = function(name){
 		return this[name];
 	};
-	eval(obj.code);
-	fakeStack.pop();
-	fakeCurrentScript = fakeStack[fakeStack.length - 1];
+	try {
+		eval(obj.code);
+	}
+	catch (e){
+		throw e;
+	}
+	finally{
+		fakeStack.pop();
+		fakeCurrentScript = fakeStack[fakeStack.length - 1];
+	}
 
 	// console.log('endeval', name, getModule(name))
 	// console.groupEnd();

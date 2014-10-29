@@ -63,8 +63,8 @@
 	exports.x = 12
 </script>
 <script>
-	var i = require('inliner');
-	assert.equal(i.x, 12)
+	var inl = require('inliner');
+	assert.equal(inl.x, 12)
 </script>
 
 <!-- Short module name -->
@@ -78,6 +78,14 @@
 <!-- <script src="./node_modules/inner/node_modules/innerinner/index.js"></script> -->
 <script>
 	assert.equal(require('innerinner'), 1)
+</script>
+
+<!-- Not hiding the inter-errors-->
+<script>
+	window.addEventListener('load', function(){
+		console.info('Uncaught AssertionError: expected 1 to equal 2 is ok')
+	});
+	assert.equal(1,2);
 </script>
 
 <!-- CamelCased module -->
@@ -104,7 +112,7 @@
 <!-- package.json paths -->
 <script>
 	window.addEventListener('load', function(){
-		console.log('none error is ok')
+		console.info('Can’t find module `none` is ok')
 	});
 
 	var x = require('x');
@@ -115,4 +123,15 @@
 
 	var z = require('z');
 	assert.equal(z, 2);
+</script>
+
+
+<!-- interfering namespaces -->
+<script>
+	var i1 = require('i1');
+	assert.deepEqual(i1, {i:1});
+	var i2 = require('i2');
+	assert.deepEqual(i2, {i:2});
+	assert.deepEqual(i1, {i:1});
+	assert.notEqual(i1, i2);
 </script>
