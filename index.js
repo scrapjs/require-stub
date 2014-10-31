@@ -5,8 +5,6 @@
 */
 
 //TODO: wrap requirements into scopes (seems that it’s ok now - why?)
-//TODO: show line numbers of errors
-//TODO: save paths to the once found modules
 
 (function(global){
 if (global.require) {
@@ -14,17 +12,25 @@ if (global.require) {
 	return;
 }
 
-var prefix = 'require-stub-';
-var firstRun = !localStorage.getItem(prefix + 'ready');
+
+/** Cache of once found filepaths. Use them first to resolve modules. */
+var modulePathsCacheKey = 'rs-paths';
+var modulePathsCache = sessionStorage.getItem(modulePathsCacheKey);
+if (modulePathsCache) modulePathsCache = JSON.parse(modulePathsCache);
+else modulePathsCache = {};
 
 
 /** try to look up for script (causes 404 requests) */
 require.lookUpModules = true;
 
+/** try to guess file path, if no package.json found (causes intense 404 traffic)*/
+require.guessPath = true;
 
-/** modules storage */
+
+/** modules storage, moduleName: moduleExports  */
 var modules = require.modules = {};
-/** paths-names dict */
+
+/** paths-names dict, modulePath: moduleName */
 var modulePaths = require.modulePaths = {};
 
 /** packages storage: `moduleName:package`, `path:package` */
@@ -67,7 +73,7 @@ var nativeModules = {
 var fakeCurrentScript, fakeStack = [];
 
 
-console.groupCollapsed('package.json')
+console.groupCollapsed('package.json');
 
 // http://localhost:8000/
 var rootPath = getAbsolutePath('/');
@@ -112,10 +118,19 @@ function require(name){
 		//clean js suffix
 		name = unjs(name);
 
-		//try to reach module by path
+		//try to reach saved in session storage module path
+		var path = modulePathsCache[name];
+		var sourceCode;
+		if (path) {
+			sourceCode = requestFile(path);
+		}
+
+		//try to reach module by it’s name as path
 		//./chai/a.js
-		var path = getAbsolutePath(currDir + name + '.js');
-		var sourceCode = requestFile(path);
+		if (!sourceCode) {
+			path = getAbsolutePath(currDir + name + '.js');
+			var sourceCode = requestFile(path);
+		}
 
 		//./chai/a/index.js
 		if (!sourceCode) {
@@ -181,59 +196,64 @@ function require(name){
 
 
 		//if is not found - try to fetch from node_modules folder, if any (no need package.json)
-		var commonPaths = [
-			'node_modules/{{name}}/index.js',
-			'node_modules/{{name}}/{{name}}.js',
-			'node_modules/{{name}}/main.js',
-			'node_modules/{{name}}/lib/{{name}}.js',
-			'node_modules/{{name}}/lib/index.js',
-			'node_modules/{{name}}/src/{{name}}.js',
-			'node_modules/{{name}}/src/index.js',
-			'node_modules/{{name}}/dist/{{name}}.js'
-		];
+		if (require.guessPath) {
+			var commonPaths = [
+				'node_modules/{{name}}/index.js',
+				'node_modules/{{name}}/{{name}}.js',
+				'node_modules/{{name}}/lib/{{name}}.js',
+				'node_modules/{{name}}/lib/index.js',
+				'node_modules/{{name}}/src/{{name}}.js',
+				'node_modules/{{name}}/src/index.js',
+				'node_modules/{{name}}/dist/{{name}}.js'
+			];
 
-		//try relative node_modules folder
-		for (var i = 0, path; i < commonPaths.length; i++){
-			path = commonPaths[i].replace(/{{name}}/ig, name);
-			path = currDir + path;
-			sourceCode = requestFile(path);
-			if (sourceCode) {
-				try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-				}catch(e){throw e}
-				finally{
-					console.groupEnd();
+			//try relative node_modules folder
+			for (var i = 0, path; i < commonPaths.length; i++){
+				path = commonPaths[i].replace(/{{name}}/ig, name);
+				path = currDir + path;
+				sourceCode = requestFile(path);
+				if (sourceCode) {
+					try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+					}catch(e){throw e}
+					finally{
+						console.groupEnd();
+					}
+					return getModule(name);
 				}
-				return getModule(name);
 			}
-		}
 
-		//try initial node_modules folder
-		for (var i = 0, path; i < commonPaths.length; i++){
-			path = commonPaths[i].replace(/{{name}}/ig, name);
-			path = currPath + path;
-			sourceCode = requestFile(path);
-			if (sourceCode) {
-				try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-				}catch(e){throw e}
-				finally{
-					console.groupEnd();
+			//try initial node_modules folder
+			if (currPath !== currDir) {
+				for (var i = 0, path; i < commonPaths.length; i++){
+					path = commonPaths[i].replace(/{{name}}/ig, name);
+					path = currPath + path;
+					sourceCode = requestFile(path);
+					if (sourceCode) {
+						try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+						}catch(e){throw e}
+						finally{
+							console.groupEnd();
+						}
+						return getModule(name);
+					}
 				}
-				return getModule(name);
 			}
-		}
 
-		//try root node_modules folder
-		for (var i = 0, path; i < commonPaths.length; i++){
-			path = commonPaths[i].replace(/{{name}}/ig, name);
-			path = rootPath + path;
-			sourceCode = requestFile(path);
-			if (sourceCode) {
-				try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-				}catch(e){throw e}
-				finally{
-					console.groupEnd();
+			//try root node_modules folder
+			if (rootPath !== currPath && rootPath !== currDir) {
+				for (var i = 0, path; i < commonPaths.length; i++){
+					path = commonPaths[i].replace(/{{name}}/ig, name);
+					path = rootPath + path;
+					sourceCode = requestFile(path);
+					if (sourceCode) {
+						try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+						}catch(e){throw e}
+						finally{
+							console.groupEnd();
+						}
+						return getModule(name);
+					}
 				}
-				return getModule(name);
 			}
 		}
 	}
@@ -249,7 +269,7 @@ function require(name){
 	//save error to log
 	var scriptSrc = getCurrentScript().src;
 	scriptSrc = scriptSrc || global.location + '';
-	var error = new Error('Can’t find module `' + name + '` in `' + scriptSrc + '`. Possibly the module is not installed. Please, install it or include script on the page.');
+	var error = new Error('Can’t find module `' + name + '`. Possibly the module is not installed or package.json is not provided');
 
 	errors.push(error);
 
@@ -364,7 +384,10 @@ function requestPkg(path){
 }
 
 
-/** eval & create fake script */
+/**
+ * eval & create fake script
+ * @param {Object} obj {code: sourceCode, src:path, 'data-module-name': name, 'name': name}
+ */
 function evalScript(obj){
 	var name = obj.name;
 	// console.group('eval', name)
@@ -376,11 +399,12 @@ function evalScript(obj){
 		return this[name];
 	};
 	try {
+		saveModulePath(name, obj.src);
 		eval(obj.code);
 	}
 	catch (e){
 		//add filename
-		e.message += '. ' + obj.src
+		e.message += '. ' + obj.src;
 		throw e;
 	}
 	finally{
@@ -419,7 +443,7 @@ var lastExports, lastScript, lastModuleName;
 
 
 /** hook for modules/exports accessors */
-function hookExports(v){
+function hookExports(moduleExports){
 	var script = getCurrentScript();
 
 	//if script hasn’t changed - keep current exports
@@ -427,10 +451,10 @@ function hookExports(v){
 
 	//if script changed - create a new module with exports
 	lastScript = script;
-	var moduleName = inferModuleName(script);
+	var moduleName = figureOutModuleName(script);
 
 	//ignore scripts with undefined moduleName/src
-	if (!moduleName) throw Error('Can’t infer module name. Define it via `data-module="name"` attribute on the script.')
+	if (!moduleName) throw Error('Can’t figure out module name. Define it via `data-module="name"` attribute on the script.')
 
 	//save new module path
 	modulePaths[script.src] = moduleName;
@@ -441,7 +465,7 @@ function hookExports(v){
 	// if (modules[moduleName]) return modules[moduleName];
 
 	lastModuleName = moduleName;
-	lastExports = v || {};
+	lastExports = moduleExports || {};
 
 	// console.log('new module', moduleName);
 	//else - save a new module (e.g. enot/index.js)
@@ -459,9 +483,15 @@ function hookExports(v){
 	return lastExports;
 }
 
+/** Session storage source code saver */
+function saveModulePath (name, val){
+	modulePathsCache[name] = val;
+	sessionStorage.setItem(modulePathsCacheKey, JSON.stringify(modulePathsCache));
+}
+
 
 /** try to retrieve module name from script tag */
-function inferModuleName(script){
+function figureOutModuleName(script){
 	//name is clearly defined
 	var moduleName = script.getAttribute('data-module-name');
 

@@ -1,6 +1,8 @@
 <!doctype html>
 <title>Require tests</title>
 
+<script>console.time('rs')</script>
+
 <script src="../index.js"></script>
 <script src="../node_modules/chai/chai.js"></script>
 <script>
@@ -135,3 +137,6 @@
 	assert.deepEqual(i1, {i:1});
 	assert.notEqual(i1, i2);
 </script>
+
+
+<script>console.timeEnd('rs');</script>
