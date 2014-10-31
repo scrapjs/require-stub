@@ -15,10 +15,6 @@ npm install require-stub
 <!-- provide `reqiure` -->
 <script src="node_modules/require-stub/index.js"></script>
 
-<!-- include modules in the proper order avoiding circular dependencies -->
-<script src="node_modules/chai/chai.js"></script>
-<script src="../index.js" data-module-name="enot"></script>
-
 <!-- use require -->
 <script>
 	var chai = require("chai");
@@ -29,27 +25,21 @@ npm install require-stub
 </script>
 ```
 
-
-If something goes wrong, try to set `data-module-name` on script:
-
-```html
-<script src="../index.js" data-module-name="special-module"></script>
-<script>
-	require('special-module');
-</script>
-```
-
-If that doesn’t help, seems that you have a circular dependency within modules, so try to resolve it.
-
-If you’re sure that it’s not, then report a [bug](https://github.com/dfcreative/require-stub/issues).
+If you find something isn’t working, report a [bug](https://github.com/dfcreative/require-stub/issues).
 
 
 
 ###### How does it work?
 
-Via getters/setters on global `module.exports` ans `exports` variables and synchronous XMLHttpRequest.
+Via getters/setters on global `module.exports` ans `exports` variables. To load scripts used synchronous XMLHttpRequest. To resolve module paths used `package.json`, if present, and if not - path is guessed.
+Required scripts are evaled, so to provide module scopes.
 
 
 Best wishes,
 
 Deema.
+
+
+---
+
+Unlicensed.
