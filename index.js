@@ -4,7 +4,9 @@
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
 */
 
-//TODO: wrap requirements into scopes
+//TODO: wrap requirements into scopes (seems that it’s ok now - why?)
+//TODO: show line numbers of errors
+//TODO: save paths to the once found modules
 
 (function(global){
 if (global.require) {
@@ -377,6 +379,8 @@ function evalScript(obj){
 		eval(obj.code);
 	}
 	catch (e){
+		//add filename
+		e.message += '. ' + obj.src
 		throw e;
 	}
 	finally{
