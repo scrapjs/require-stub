@@ -123,8 +123,12 @@ function require(name){
 
 		//if found - eval script
 		if (sourceCode) {
-			console.groupEnd();
-			evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+			try {
+				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+			}catch(e){throw e}
+			finally{
+				console.groupEnd();
+			}
 			return getModule(name);
 		}
 
@@ -143,8 +147,12 @@ function require(name){
 				path = depPkg._dir + depPkg.main;
 				sourceCode = requestFile(path);
 				if (sourceCode) {
-					console.groupEnd();
-					evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+					try{
+						evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+					}catch(e){throw e}
+					finally{
+						console.groupEnd();
+					}
 					return getModule(name);
 				}
 			}
@@ -158,8 +166,12 @@ function require(name){
 				path = tPkg._dir + tPkg.main;
 				sourceCode = requestFile(path);
 				if (sourceCode) {
-					console.groupEnd();
-					evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+					try{
+						evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+					}catch(e){throw e}
+					finally{
+						console.groupEnd();
+					}
 					return getModule(name);
 				}
 			}
@@ -184,8 +196,11 @@ function require(name){
 			path = currDir + path;
 			sourceCode = requestFile(path);
 			if (sourceCode) {
-				console.groupEnd();
-				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+				try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+				}catch(e){throw e}
+				finally{
+					console.groupEnd();
+				}
 				return getModule(name);
 			}
 		}
@@ -196,8 +211,11 @@ function require(name){
 			path = currPath + path;
 			sourceCode = requestFile(path);
 			if (sourceCode) {
-				console.groupEnd();
-				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+				try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+				}catch(e){throw e}
+				finally{
+					console.groupEnd();
+				}
 				return getModule(name);
 			}
 		}
@@ -208,8 +226,11 @@ function require(name){
 			path = rootPath + path;
 			sourceCode = requestFile(path);
 			if (sourceCode) {
-				console.groupEnd();
-				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+				try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+				}catch(e){throw e}
+				finally{
+					console.groupEnd();
+				}
 				return getModule(name);
 			}
 		}
