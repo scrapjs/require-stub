@@ -73,20 +73,26 @@ var nativeModules = {
 var fakeCurrentScript, fakeStack = [];
 
 
-console.groupCollapsed('package.json');
+try {
+	console.groupCollapsed('package.json');
 
-// http://localhost:8000/
-var rootPath = getAbsolutePath('/');
-// http://localhost:8000/test/
-var currPath = getAbsolutePath('');
+	// http://localhost:8000/
+	var rootPath = getAbsolutePath('/');
+	// http://localhost:8000/test/
+	var currPath = getAbsolutePath('');
 
 
-//reach root (initial) package.json (closest one to the current url)
-var selfPkg = requestClosestPkg(getAbsolutePath(''));
+	//reach root (initial) package.json (closest one to the current url)
+	var selfPkg = requestClosestPkg(getAbsolutePath(''));
 
-if (!selfPkg) console.warn('Can’t find main package.json by `' + rootPath + '` nor by `' +  getAbsolutePath('') + '`.');
+	if (!selfPkg) console.warn('Can’t find main package.json by `' + rootPath + '` nor by `' +  getAbsolutePath('') + '`.');
 
-console.groupEnd();
+} catch (e){
+	throw e;
+}
+finally{
+	console.groupEnd();
+}
 
 
 
@@ -299,7 +305,7 @@ function getDir(path){
 function getAbsolutePath(path){
 	var a = document.createElement('a');
 	a.href = path;
-	return a.href;
+	return a.origin + a.pathname;
 }
 
 
