@@ -4,7 +4,7 @@ Sometimes in development it is very annoying to compile browserify code `--stand
 
 I want just to doubleclick the `test.html`, or launch `http-server` in the project’s folder, and develop via tests as I used to when I didn’t know about node modules.
 
-So here is a script to support `require` calls synchronously in-browser. Don’t use it on production, in any circumstances.
+So here is a script to support `require` calls synchronously in-browser. Don’t use it in production, in any circumstances.
 
 
 ```shell
