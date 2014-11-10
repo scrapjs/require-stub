@@ -5,6 +5,7 @@
 */
 
 //TODO: wrap requirements into scopes (seems that it’s ok now - why?)
+//TODO: clear session cache properly
 
 (function(global){
 if (global.require) {
@@ -102,12 +103,11 @@ global.require = require;
 
 /** require stub */
 function require(name){
-	if (!name) throw Error('Bad module name `' + name + '`');
+	var location = getCurrentScript().src || global.location + '';
 
-	//ignore errorred previous requires
-	// if (errors.length) return;
+	if (!name) throw Error('Bad module name `' + name + '`', location);
 
-	console.groupCollapsed('require(\'' + name + '\') ', getCurrentScript().src || global.location + '');
+	console.groupCollapsed('require(\'' + name + '\') ', location);
 
 	//try to fetch existing module
 	var result = getModule(unjs(name.toLowerCase()));
@@ -269,7 +269,7 @@ function require(name){
 
 
 	//force native modules throw error
-	if (nativeModules[name]) throw Error('Can’t include native module `' + name + '` in browser');
+	if (nativeModules[name]) throw Error('Can’t include native node module `' + name + '` in browser');
 
 
 	//save error to log
