@@ -125,19 +125,27 @@ function require(name){
 
 	//get current script dir
 	var currDir = getDir(getAbsolutePath(getCurrentScript().src));
+	//get curr package, if any
+	var pkg = requestClosestPkg(currDir);
+
 
 	//if not - try to look up for module
 	if (require.lookUpModules) {
 		//clean js suffix
 		name = unjs(name);
 
+		//try to map to browser version (defined in "browser" dict in "package.json")
+		if (pkg && pkg.browser) {
+			name = pkg.browser[name] || pkg.browser[name + '.js' ] || name;
+		}
+
+		name = unjs(name);
+
 		//clear dir
 		if (name.slice(-1) === '/') name = name.slice(0, -1);
 
-		//try to fetch browser version beforehead (critical in some specific cases, like util.js)
 
-
-		//try to reach saved in session storage module path
+		//try to fetch saved in session storage module path
 		var path = modulePathsCache[name];
 		var sourceCode;
 		if (path) {
@@ -171,7 +179,6 @@ function require(name){
 
 
 		//if is not found, try to reach dependency from the current script package.json
-		var pkg = requestClosestPkg(currDir);
 		if (pkg) {
 			var pkgDir = pkg._dir;
 			console.log('load dependency from', pkgDir + 'package.json');
@@ -416,6 +423,7 @@ function requestPkg(path, force){
 				requestPkg(path + '/node_modules/' + depName);
 			}
 		}
+
 		return result;
 	}
 	return false;
@@ -504,7 +512,7 @@ function hookExports(moduleExports){
 	modulePaths[script.getAttribute('src')] = moduleName;
 
 	//if exports.something = ...
-	lastExports = moduleExports ? moduleExports : script.exports;
+	lastExports = moduleExports ? moduleExports : script.exports || {};
 
 	lastModuleName = moduleName;
 
