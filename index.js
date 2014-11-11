@@ -5,7 +5,6 @@
 */
 
 //TODO: wrap requirements into scopes (seems that it’s ok now - why?)
-//TODO: clear session cache properly
 
 (function(global){
 if (global.require) {
@@ -42,7 +41,7 @@ var errors = [];
 
 /** list of native node modules */
 var nativeModules = {
-	'assert': true,
+	'assert': false,
 	'buffer': true,
 	'child_process': true,
 	'cluster': true,
@@ -64,7 +63,7 @@ var nativeModules = {
 	'tls': true,
 	'dgram': true,
 	'url': true,
-	'util': true,
+	'util': false,
 	'vm': true,
 	'zlib': true
 };
@@ -74,6 +73,7 @@ var nativeModules = {
 var fakeCurrentScript, fakeStack = [];
 
 
+//try to load initial module package
 try {
 	console.groupCollapsed('package.json');
 
@@ -84,7 +84,14 @@ try {
 
 
 	//reach root (initial) package.json (closest one to the current url)
-	var selfPkg = requestClosestPkg(getAbsolutePath(''));
+	var selfPkg = requestClosestPkg(getAbsolutePath(''), true);
+
+	//clear cache, if current package has changed
+	var savedModuleName = sessionStorage.getItem('rs-saved-name');
+	if (savedModuleName && selfPkg.name !== savedModuleName || savedModuleName === null) {
+		sessionStorage.clear();
+		sessionStorage.setItem('rs-saved-name', selfPkg.name);
+	}
 
 	if (!selfPkg) console.warn('Can’t find main package.json by `' + rootPath + '` nor by `' +  getAbsolutePath('') + '`.');
 
@@ -124,12 +131,19 @@ function require(name){
 		//clean js suffix
 		name = unjs(name);
 
+		//clear dir
+		if (name.slice(-1) === '/') name = name.slice(0, -1);
+
+		//try to fetch browser version beforehead (critical in some specific cases, like util.js)
+
+
 		//try to reach saved in session storage module path
 		var path = modulePathsCache[name];
 		var sourceCode;
 		if (path) {
 			sourceCode = requestFile(path);
 		}
+
 
 		//try to reach module by it’s name as path
 		//./chai/a.js
@@ -165,9 +179,19 @@ function require(name){
 			//try to reach dependency’s package.json and get path from it
 			var depPkg = requestPkg(pkgDir + 'node_modules/' + name + '/');
 			if (depPkg) {
-				if (!depPkg.main) depPkg.main = 'index.js';
-				else depPkg.main = unjs(depPkg.main) + '.js';
-				path = depPkg._dir + depPkg.main;
+				if (!depPkg.browser) {
+					depPkg.browser = 'index.js';
+				}
+				else {
+					depPkg.browser = unjs(depPkg.browser) + '.js';
+				}
+				if (!depPkg.main) {
+					depPkg.main = 'index.js';
+				}
+				else {
+					depPkg.main = unjs(depPkg.main) + '.js';
+				}
+				path = depPkg._dir + depPkg.browser;
 				sourceCode = requestFile(path);
 				if (sourceCode) {
 					try{
@@ -186,8 +210,13 @@ function require(name){
 		for (var pkgName in packages) {
 			tPkg = packages[pkgName];
 			if (tPkg.name === name) {
-				path = tPkg._dir + tPkg.main;
+				//fetch browser field beforehead
+				path = tPkg._dir + tPkg.browser;
 				sourceCode = requestFile(path);
+				if (!sourceCode) {
+					path = tPkg._dir + tPkg.main;
+					sourceCode = requestFile(path);
+				}
 				if (sourceCode) {
 					try{
 						evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
@@ -337,11 +366,11 @@ function requestFile(path){
 
 
 /** Return closest package to the path */
-function requestClosestPkg(path) {
+function requestClosestPkg(path, force) {
 	var file;
 	if (path[path.length - 1] === '/') path = path.slice(0, -1);
 	while (path) {
-		pkg = requestPkg(path);
+		pkg = requestPkg(path, force);
 		if (pkg) {
 			return pkg;
 		}
@@ -354,9 +383,11 @@ function requestClosestPkg(path) {
 /**
  * Return package.json parsed by the path requested, or false
  */
-function requestPkg(path){
+function requestPkg(path, force){
 	//return cached pkg
-	if (packages[path]) return packages[path];
+	if (!force && packages[path]) {
+		return packages[path];
+	}
 
 	if (path[path.length - 1] === '/') path = path.slice(0, -1);
 	file = requestFile(path + '/package.json');
@@ -371,6 +402,7 @@ function requestPkg(path){
 
 		//preset pkg name
 		if (!result.name) result.name = name;
+		if (!result.browser) result.browser = 'index.js';
 		if (!result.main) result.main = 'index.js';
 
 		if (!packages[name]){
@@ -396,6 +428,10 @@ function requestPkg(path){
  */
 function evalScript(obj){
 	var name = obj.name;
+
+	//create exports for the script
+	obj.exports = {};
+
 	// console.group('eval', name)
 
 	//we need to keep fake <script> tags in order to comply with inner require calls, referencing .currentScript and .src attributes
@@ -467,11 +503,10 @@ function hookExports(moduleExports){
 	modulePaths[script.src.toLowerCase()] = moduleName;
 	modulePaths[script.getAttribute('src')] = moduleName;
 
-	//@deprecated if module exists - ignore saving
-	// if (modules[moduleName]) return modules[moduleName];
+	//if exports.something = ...
+	lastExports = moduleExports ? moduleExports : script.exports;
 
 	lastModuleName = moduleName;
-	lastExports = moduleExports || {};
 
 	// console.log('new module', moduleName);
 	//else - save a new module (e.g. enot/index.js)
@@ -484,7 +519,6 @@ function hookExports(moduleExports){
 	//save package name (e.g. enot)
 	moduleName = moduleName.split(/[\\\/]/)[0];
 	modules[moduleName] = lastExports;
-
 
 	return lastExports;
 }

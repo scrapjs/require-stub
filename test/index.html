@@ -8,11 +8,17 @@
 	if (!location.search) location += '?a=123'
 </script>
 
-<script src="../index.js"></script>
-<script src="../node_modules/chai/chai.js"></script>
+<!-- <script src="../node_modules/chai/chai.js"></script>
 <script>
 	var assert = require('chai').assert;
 </script>
+-->
+
+<script src="../index.js"></script>
+
+<script>var assert = require('assert');</script>
+
+
 
 <!-- external module -->
 <!-- <script src="node_modules/modular/index.js"></script> -->
@@ -149,5 +155,9 @@
 
 <!-- exports.something = require('something') case -->
 <script>
-	throw Error('unimplemented');
+	var e1 = require('./e1');
+
+	assert.equal(e1.a, 1);
+	assert.equal(e1.b.c, 2);
+	assert.equal(e1.b.d, 3);
 </script>
