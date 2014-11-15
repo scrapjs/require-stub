@@ -5,6 +5,8 @@
 */
 
 //TODO: wrap requirements into scopes (seems that it’s ok now - why?)
+//TODO: load remote requirements
+//TODO: add beautiful initial animation
 
 (function(global){
 if (global.require) {
