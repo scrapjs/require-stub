@@ -6,7 +6,8 @@
 
 //TODO: wrap requirements into scopes (seems that it’s ok now - why?)
 //TODO: load remote requirements
-//TODO: add beautiful initial animation
+//TODO: add splashscreen or some notification
+
 
 (function(global){
 if (global.require) {
@@ -27,6 +28,9 @@ require.lookUpModules = true;
 
 /** try to guess file path, if no package.json found (causes intense 404 traffic)*/
 require.guessPath = true;
+
+/** try to fetch requirement from github, if not found */
+require.fetchFromGithub = true;
 
 
 /** modules storage, moduleName: moduleExports  */
@@ -154,7 +158,6 @@ function require(name){
 			sourceCode = requestFile(path);
 		}
 
-
 		//try to reach module by it’s name as path
 		//./chai/a.js
 		if (!sourceCode) {
@@ -172,7 +175,7 @@ function require(name){
 		if (sourceCode) {
 			try {
 				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-			}catch(e){throw e}
+			} catch(e) {throw e;}
 			finally{
 				console.groupEnd();
 			}
@@ -300,6 +303,12 @@ function require(name){
 				}
 			}
 		}
+
+
+		//if no folder guessed - try to load from github
+		if (require.fetchFromGithub) {
+
+		}
 	}
 
 	//close require group
@@ -343,7 +352,10 @@ function getDir(path){
 function getAbsolutePath(path){
 	var a = document.createElement('a');
 	a.href = path;
-	return a.origin + a.pathname;
+	var absPath = a.href.split('?')[0];
+	absPath = absPath.split('#')[0];
+	return absPath;
+	// return a.origin + a.pathname;
 }
 
 
@@ -442,7 +454,7 @@ function evalScript(obj){
 	//create exports for the script
 	obj.exports = {};
 
-	// console.group('eval', name)
+	// console.groupCollapsed('eval', name)
 
 	//we need to keep fake <script> tags in order to comply with inner require calls, referencing .currentScript and .src attributes
 	fakeCurrentScript = obj;
