@@ -88,7 +88,6 @@ try {
 	// http://localhost:8000/test/
 	var currPath = getAbsolutePath('');
 
-
 	//reach root (initial) package.json (closest one to the current url)
 	var selfPkg = requestClosestPkg(getAbsolutePath(''), true);
 
@@ -377,8 +376,7 @@ function requestFile(path){
 
 	finally {
 		if (request.status === 200) {
-			// console.log('SUCCESS', request);
-			return request.response;
+			return request.responseText || request.response;
 		}
 	}
 
