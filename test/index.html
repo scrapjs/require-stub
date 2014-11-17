@@ -161,3 +161,10 @@
 	assert.equal(e1.b.c, 2);
 	assert.equal(e1.b.d, 3);
 </script>
+
+
+<!-- submodule -->
+<script>
+	var sm = require('mymod/some');
+	assert.equal(sm, 1);
+</script>

@@ -7,6 +7,7 @@
 //TODO: wrap requirements into scopes (seems that it’s ok now - why?)
 //TODO: load remote requirements
 //TODO: add splashscreen or some notification
+//TODO: ensure that there’re no extra-modules loaded (fully browserifyable, no fake-paths parsing)
 
 
 (function(global){
@@ -176,7 +177,10 @@ function require(name){
 			var modulePrefix = parts[0];
 			var tpkg;
 			if (tpkg = packages[modulePrefix]) {
-				path = getAbsolutePath(tpkg._dir + unjs(parts.slice(1).join('/')) + '.js');
+				var innerPath = unjs(parts.slice(1).join('/'));
+				innerPath = tpkg.browser[innerPath] || tpkg.browser[innerPath + '.js'] || innerPath;
+				path = getAbsolutePath(tpkg._dir + innerPath + '.js');
+
 				sourceCode = requestFile(path);
 			}
 		}
@@ -443,6 +447,11 @@ function requestPkg(path, force){
 		//save all nested packages
 		if (result.dependencies){
 			for (var depName in result.dependencies){
+				requestPkg(path + '/node_modules/' + depName);
+			}
+		}
+		if (result.devDependencies){
+			for (var depName in result.devDependencies){
 				requestPkg(path + '/node_modules/' + depName);
 			}
 		}

@@ -3,5 +3,8 @@
 	"dependencies": {
 		"x": "*",
 		"inner": "*"
+	},
+	"devDependencies": {
+		"mymod": "*"
 	}
 }
