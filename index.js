@@ -170,6 +170,17 @@ function require(name){
 			sourceCode = requestFile(path);
 		}
 
+		//if there is a package named by the first component of the required path - try to fetch module’s file 'color-convers/conversions'
+		if (!sourceCode) {
+			var parts = name.split('/');
+			var modulePrefix = parts[0];
+			var tpkg;
+			if (tpkg = packages[modulePrefix]) {
+				path = getAbsolutePath(tpkg._dir + unjs(parts.slice(1).join('/')) + '.js');
+				sourceCode = requestFile(path);
+			}
+		}
+
 		//if found - eval script
 		if (sourceCode) {
 			try {
