@@ -8,6 +8,7 @@
 //TODO: load remote requirements
 //TODO: add splashscreen or some notification
 //TODO: ensure that there’re no extra-modules loaded (fully browserifyable, no fake-paths parsing)
+//TODO: make it work in web-workers
 
 
 (function(global){
@@ -31,7 +32,10 @@ require.lookUpModules = true;
 require.guessPath = true;
 
 /** try to fetch requirement from github, if not found */
-require.fetchFromGithub = true;
+require.fetchFromGithub = false;
+
+/** load dev deps (may cause a shitload of XHTTP traffic) */
+require.loadDevDeps = false;
 
 
 /** modules storage, moduleName: moduleExports  */
@@ -450,9 +454,11 @@ function requestPkg(path, force){
 				requestPkg(path + '/node_modules/' + depName);
 			}
 		}
-		if (result.devDependencies){
-			for (var depName in result.devDependencies){
-				requestPkg(path + '/node_modules/' + depName);
+		if (require.loadDevDeps) {
+			if (result.devDependencies){
+				for (var depName in result.devDependencies){
+					requestPkg(path + '/node_modules/' + depName);
+				}
 			}
 		}
 
