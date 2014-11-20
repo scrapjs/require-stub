@@ -9,6 +9,8 @@
 //TODO: add splashscreen or some notification
 //TODO: ensure that there’re no extra-modules loaded (fully browserifyable, no fake-paths parsing)
 //TODO: make it work in web-workers
+//TODO: require .json
+//FIXME: circular deps, esp. when require('pkgName.js') instead of index.js, where pkgName.js is different file.
 
 
 (function(global){
@@ -119,7 +121,7 @@ global.require = require;
 
 
 /** require stub */
-function require(name){
+function require(name) {
 	var location = getCurrentScript().src || global.location + '';
 
 	if (!name) throw Error('Bad module name `' + name + '`', location);
