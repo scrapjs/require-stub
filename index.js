@@ -129,7 +129,7 @@ function require(name) {
 	console.groupCollapsed('require(\'' + name + '\') ', location);
 
 	//try to fetch existing module
-	var result = getModule(unjs(name.toLowerCase()));
+	var result = getModule(unext(name.toLowerCase()));
 	if (result) {
 		console.groupEnd();
 		return result;
@@ -143,29 +143,33 @@ function require(name) {
 
 	//if not - try to look up for module
 	if (require.lookUpModules) {
-		//clean js suffix
-		name = unjs(name);
-
 		//try to map to browser version (defined in "browser" dict in "package.json")
 		if (pkg && pkg.browser) {
-			name = pkg.browser[name] || pkg.browser[name + '.js' ] || name;
+			name = pkg.browser[name] || pkg.browser[unext(name) + '.js' ] || name;
 		}
-
-		name = unjs(name);
 
 		//clear dir
 		if (name.slice(-1) === '/') name = name.slice(0, -1);
 
 
 		//try to fetch saved in session storage module path
-		var path = modulePathsCache[name];
+		var path = modulePathsCache[unext(name)];
 		var sourceCode;
 		if (path) {
 			sourceCode = requestFile(path);
 		}
 
 		//try to reach module by it’s name as path
-		//./chai/a.js
+		//./chai/a.js, ./chai/a.json
+		if (!sourceCode) {
+			path = getAbsolutePath(currDir + name);
+			var sourceCode = requestFile(path);
+		}
+
+		//unsuffixize name
+		name = unext(name);
+
+		//./chai/a
 		if (!sourceCode) {
 			path = getAbsolutePath(currDir + name + '.js');
 			var sourceCode = requestFile(path);
@@ -183,7 +187,7 @@ function require(name) {
 			var modulePrefix = parts[0];
 			var tpkg;
 			if (tpkg = packages[modulePrefix]) {
-				var innerPath = unjs(parts.slice(1).join('/'));
+				var innerPath = unext(parts.slice(1).join('/'));
 				innerPath = tpkg.browser[innerPath] || tpkg.browser[innerPath + '.js'] || innerPath;
 				path = getAbsolutePath(tpkg._dir + innerPath + '.js');
 
@@ -215,13 +219,13 @@ function require(name) {
 					depPkg.browser = 'index.js';
 				}
 				else {
-					depPkg.browser = unjs(depPkg.browser) + '.js';
+					depPkg.browser = unext(depPkg.browser) + '.js';
 				}
 				if (!depPkg.main) {
 					depPkg.main = 'index.js';
 				}
 				else {
-					depPkg.main = unjs(depPkg.main) + '.js';
+					depPkg.main = unext(depPkg.main) + '.js';
 				}
 				path = depPkg._dir + depPkg.browser;
 				sourceCode = requestFile(path);
@@ -477,7 +481,11 @@ function requestPkg(path, force){
 function evalScript(obj){
 	var name = obj.name;
 
+	//save module here (eval is a final step, so module is found)
+	saveModulePath(name, obj.src);
+
 	//create exports for the script
+	//FIXME: why?
 	obj.exports = {};
 
 	// console.groupCollapsed('eval', name)
@@ -488,19 +496,27 @@ function evalScript(obj){
 	fakeCurrentScript.getAttribute = function(name){
 		return this[name];
 	};
+
+
 	try {
-		saveModulePath(name, obj.src);
-		eval(obj.code);
-	}
-	catch (e){
-		//add filename
-		e.message += '. ' + obj.src;
+		//try to eval json first
+		if (obj.src.slice(-5) === '.json') {
+			global.exports = JSON.parse(obj.code);
+		}
+
+		//eval fake script
+		else {
+			eval(obj.code);
+		}
+	} catch (e){
+		//add filename to message
+		e.message += ' in ' + obj.src;
 		throw e;
 	}
-	finally{
-		fakeStack.pop();
-		fakeCurrentScript = fakeStack[fakeStack.length - 1];
-	}
+
+
+	fakeStack.pop();
+	fakeCurrentScript = fakeStack[fakeStack.length - 1];
 
 	// console.log('endeval', name, getModule(name))
 	// console.groupEnd();
@@ -561,7 +577,7 @@ function hookExports(moduleExports){
 	modules[moduleName] = lastExports;
 
 	//save no-js module name (e.g. enot/index)
-	moduleName = unjs(moduleName);
+	moduleName = unext(moduleName);
 	modules[moduleName] = lastExports;
 
 	//save package name (e.g. enot)
@@ -571,7 +587,7 @@ function hookExports(moduleExports){
 	return lastExports;
 }
 
-/** Session storage source code saver */
+/** Session storage source code paths saver */
 function saveModulePath (name, val){
 	modulePathsCache[name] = val;
 	sessionStorage.setItem(modulePathsCacheKey, JSON.stringify(modulePathsCache));
@@ -622,10 +638,10 @@ function getCurrentScript(){
 
 
 /**
- * Get rid of .js suffix
+ * Get rid of .extension
  */
-function unjs(name){
-	if (/\.js$/.test(name)) return name.slice(0, -3);
+function unext(name){
+	if (/\.[a-z]+$/.test(name)) return name.split('.').slice(0, -1).join('.');
 	return name;
 }
 

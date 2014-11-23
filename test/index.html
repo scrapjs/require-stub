@@ -168,3 +168,10 @@
 	var sm = require('mymod/some');
 	assert.equal(sm, 1);
 </script>
+
+
+<!-- json path -->
+<script>
+	var ijson = require('./i.json');
+	assert.deepEqual(ijson, {a:1});
+</script>
