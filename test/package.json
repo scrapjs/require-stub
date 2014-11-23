@@ -2,9 +2,9 @@
 	"name": "require-stub-test",
 	"dependencies": {
 		"x": "*",
-		"inner": "*"
+		"inner": "*",
+		"mymod": "*"
 	},
 	"devDependencies": {
-		"mymod": "*"
 	}
 }
