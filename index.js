@@ -10,7 +10,8 @@
 //TODO: add splashscreen or some notification of initial loading
 //TODO: ensure that there’re no extra-modules loaded (fully browserifyable, no fake-paths parsing)
 //TODO: make it work in web-workers
-//FIXME: circular deps, esp. when require('pkgName.js') instead of index.js, where pkgName.js is different file.
+//FIXME: circular deps, esp. when require('pkgName.js') instead of index.js, where pkgName.js is different file. Count? Try to clear cache.
+//TODO: show lines in errors
 
 
 (function(global){
@@ -137,12 +138,15 @@ function require(name) {
 
 	//get current script dir
 	var currDir = getDir(getAbsolutePath(getCurrentScript().src));
+
 	//get curr package, if any
 	var pkg = requestClosestPkg(currDir);
 
 
 	//if not - try to look up for module
 	if (require.lookUpModules) {
+		var sourceCode, path;
+
 		//try to map to browser version (defined in "browser" dict in "package.json")
 		if (pkg && pkg.browser) {
 			name = pkg.browser[name] || pkg.browser[unext(name) + '.js' ] || name;
@@ -165,7 +169,7 @@ function require(name) {
 		//./chai/a
 		if (!sourceCode) {
 			path = getAbsolutePath(currDir + name + '.js');
-			var sourceCode = requestFile(path);
+			sourceCode = requestFile(path);
 		}
 
 		//./chai/a/index.js
@@ -177,10 +181,9 @@ function require(name) {
 
 		//try to fetch saved in session storage module path
 		//has to be after real paths in order to avoid recursions
-		var path = modulePathsCache[name];
-		var sourceCode;
-		if (path) {
-			sourceCode = requestFile(path);
+		if (!sourceCode) {
+			path = modulePathsCache[name];
+			if (path) sourceCode = requestFile(path);
 		}
 
 		//if there is a package named by the first component of the required path - try to fetch module’s file 'color-convers/conversions'
@@ -510,15 +513,20 @@ function evalScript(obj){
 		else {
 			eval(obj.code);
 		}
-	} catch (e){
+	}
+
+	catch (e){
 		//add filename to message
 		e.message += ' in ' + obj.src;
 		throw e;
 	}
 
+	finally {
+		fakeStack.pop();
+		fakeCurrentScript = fakeStack[fakeStack.length - 1];
+	}
 
-	fakeStack.pop();
-	fakeCurrentScript = fakeStack[fakeStack.length - 1];
+
 
 	// console.log('endeval', name, getModule(name))
 	// console.groupEnd();
