@@ -4,12 +4,12 @@
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
 */
 
+
 //TODO: wrap requirements into scopes (seems that it’s ok now - why?)
-//TODO: load remote requirements
-//TODO: add splashscreen or some notification
+//TODO: load remote requirements (github ones, like dfcreative/color)
+//TODO: add splashscreen or some notification of initial loading
 //TODO: ensure that there’re no extra-modules loaded (fully browserifyable, no fake-paths parsing)
 //TODO: make it work in web-workers
-//TODO: require .json
 //FIXME: circular deps, esp. when require('pkgName.js') instead of index.js, where pkgName.js is different file.
 
 
@@ -152,13 +152,6 @@ function require(name) {
 		if (name.slice(-1) === '/') name = name.slice(0, -1);
 
 
-		//try to fetch saved in session storage module path
-		var path = modulePathsCache[unext(name)];
-		var sourceCode;
-		if (path) {
-			sourceCode = requestFile(path);
-		}
-
 		//try to reach module by it’s name as path
 		//./chai/a.js, ./chai/a.json
 		if (!sourceCode) {
@@ -178,6 +171,15 @@ function require(name) {
 		//./chai/a/index.js
 		if (!sourceCode) {
 			path = getAbsolutePath(currDir + name + '/index.js');
+			sourceCode = requestFile(path);
+		}
+
+
+		//try to fetch saved in session storage module path
+		//has to be after real paths in order to avoid recursions
+		var path = modulePathsCache[name];
+		var sourceCode;
+		if (path) {
 			sourceCode = requestFile(path);
 		}
 
