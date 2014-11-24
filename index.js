@@ -155,28 +155,28 @@ function require(name) {
 		//clear dir
 		if (name.slice(-1) === '/') name = name.slice(0, -1);
 
-
-		//try to reach module by it’s name as path
+		//try to reach module by it’s name as path, if it has extension
 		//./chai/a.js, ./chai/a.json
-		if (!sourceCode) {
+		if (name.split('/').slice(-1)[0].split('.js').length > 1) {
 			path = getAbsolutePath(currDir + name);
 			var sourceCode = requestFile(path);
 		}
 
-		//unsuffixize name
-		name = unext(name);
-
-		//./chai/a
-		if (!sourceCode) {
+		//if no extension - try to reach .js or /index.js
+		else {
+			//./chai/a
 			path = getAbsolutePath(currDir + name + '.js');
 			sourceCode = requestFile(path);
+
+			//./chai/a/index.js
+			if (!sourceCode) {
+				path = getAbsolutePath(currDir + name + '/index.js');
+				sourceCode = requestFile(path);
+			}
 		}
 
-		//./chai/a/index.js
-		if (!sourceCode) {
-			path = getAbsolutePath(currDir + name + '/index.js');
-			sourceCode = requestFile(path);
-		}
+		//unsuffixize name
+		name = unext(name);
 
 
 		//try to fetch saved in session storage module path
