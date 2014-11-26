@@ -52,7 +52,7 @@
 <!-- external relaitve path -->
 <!-- <script src="../test/special-module.js"></script> -->
 <script>
-	var spec = require('special-module');
+	var spec = require('./special-module');
 	assert.equal(spec, 4);
 </script>
 
@@ -104,8 +104,8 @@
 <!-- CamelCased module -->
 <!-- <script src="./CamelModule.js" data-module-name="CamelModule"></script> -->
 <script>
-	assert.equal(require('camelmodule'), 'CamelModuleExports')
-	assert.equal(require('CamelModule'), 'CamelModuleExports')
+	assert.equal(require('./camelmodule'), 'CamelModuleExports')
+	assert.equal(require('./CamelModule'), 'CamelModuleExports')
 </script>
 
 <!-- require nonexisting module -->
@@ -117,7 +117,7 @@
 
 <!-- guess-path module -->
 <script>
-	var a = require('guess-path');
+	var a = require('./guess-path');
 	assert.equal(a, 1);
 </script>
 
@@ -141,9 +141,9 @@
 
 <!-- interfering namespaces -->
 <script>
-	var i1 = require('i1');
+	var i1 = require('./i1');
 	assert.deepEqual(i1, {i:1});
-	var i2 = require('i2');
+	var i2 = require('./i2');
 	assert.deepEqual(i2, {i:2});
 	assert.deepEqual(i1, {i:1});
 	assert.notEqual(i1, i2);
