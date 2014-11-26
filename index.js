@@ -163,7 +163,7 @@ function require(name) {
 		}
 
 		//if no extension - try to reach .js or /index.js
-		else {
+		else if (/[\.\\]/.test(name[0])) {
 			//./chai/a
 			path = getAbsolutePath(currDir + name + '.js');
 			sourceCode = requestFile(path);
@@ -186,7 +186,7 @@ function require(name) {
 			if (path) sourceCode = requestFile(path);
 		}
 
-		//if there is a package named by the first component of the required path - try to fetch module’s file 'color-convers/conversions'
+		//if there is a package named by the first component of the required path - try to fetch module’s file 'a/b'
 		if (!sourceCode) {
 			var parts = name.split('/');
 			var modulePrefix = parts[0];
@@ -210,7 +210,6 @@ function require(name) {
 			}
 			return getModule(name);
 		}
-
 
 		//if is not found, try to reach dependency from the current script package.json
 		if (pkg) {
