@@ -1,12 +1,14 @@
 {
   "name": "require-stub",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "description": "Require stub for browser",
   "main": "index.js",
   "scripts": {
     "test": "test"
   },
-  "files": ["index.js"],
+  "files": [
+    "index.js"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/dfcreative/require-stub"
