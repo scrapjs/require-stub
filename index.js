@@ -211,6 +211,7 @@ function require(name) {
 			finally{
 				console.groupEnd();
 			}
+
 			return getModule(name);
 		}
 
@@ -596,8 +597,10 @@ function hookExports(moduleExports){
 	modules[moduleName] = lastExports;
 
 	//save package name (e.g. enot)
-	moduleName = moduleName.split(/[\\\/]/)[0];
-	modules[moduleName] = lastExports;
+	if (/(?:\/|index(?:\.js|\.json)?)$/.test(moduleName)) {
+		moduleName = moduleName.split(/[\\\/]/)[0];
+		modules[moduleName] = lastExports;
+	}
 
 	return lastExports;
 }
