@@ -186,17 +186,20 @@ function require(name) {
 			if (path) sourceCode = requestFile(path);
 		}
 
+
 		//if there is a package named by the first component of the required path - try to fetch module’s file 'a/b'
 		if (!sourceCode) {
 			var parts = name.split('/');
-			var modulePrefix = parts[0];
-			var tpkg;
-			if (tpkg = packages[modulePrefix]) {
-				var innerPath = unext(parts.slice(1).join('/'));
-				innerPath = tpkg.browser[innerPath] || tpkg.browser[innerPath + '.js'] || innerPath;
-				path = getAbsolutePath(tpkg._dir + innerPath + '.js');
+			if (parts.length > 1) {
+				var modulePrefix = parts[0];
+				var tpkg;
+				if (tpkg = packages[modulePrefix]) {
+					var innerPath = unext(parts.slice(1).join('/'));
+					innerPath = tpkg.browser[innerPath] || tpkg.browser[innerPath + '.js'] || innerPath;
+					path = getAbsolutePath(tpkg._dir + innerPath + '.js');
 
-				sourceCode = requestFile(path);
+					sourceCode = requestFile(path);
+				}
 			}
 		}
 
@@ -482,6 +485,7 @@ function requestPkg(path, force){
  * eval & create fake script
  * @param {Object} obj {code: sourceCode, src:path, 'data-module-name': name, 'name': name}
  */
+var depth = 0, maxDepth = 30;
 function evalScript(obj){
 	var name = obj.name;
 
@@ -510,7 +514,9 @@ function evalScript(obj){
 
 		//eval fake script
 		else {
+			if (depth++ > maxDepth) throw Error('Too deep');
 			eval(obj.code);
+			depth--;
 		}
 	}
 
@@ -597,7 +603,7 @@ function hookExports(moduleExports){
 }
 
 /** Session storage source code paths saver */
-function saveModulePath (name, val){
+function saveModulePath(name, val){
 	modulePathsCache[name] = val;
 	sessionStorage.setItem(modulePathsCacheKey, JSON.stringify(modulePathsCache));
 }
