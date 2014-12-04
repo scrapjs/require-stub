@@ -37,6 +37,15 @@ Via getters/setters on global `module.exports` ans `exports` variables. To load 
 Required scripts are evaled, so to provide module scopes.
 
 
+# Precautions
+
+* Don’t require stuff runtime: it is bad for performance, it causes tons of logs and it badly resolves deps, as far as current script is known only during the initial run.
+* If something causes recursion — clear session storage. Though it should be caught.
+* Don’t use in production: dynamic evals proved to be ~3x slower than browserified code. Though it is good for perf testing.
+* Avoid global variable name the same as any inner module name if it’s value isn’t the module itself.
+* If you decide to declare modules as script tags - variable names conflict is unavoidable, so name vars differently.
+
+
 Best wishes,
 
 Deema.
