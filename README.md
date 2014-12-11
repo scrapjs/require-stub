@@ -1,4 +1,4 @@
-# Broswer `require()` for testing purposes <a href="http://unlicense.org/UNLICENSE"><img src="http://upload.wikimedia.org/wikipedia/commons/6/62/PD-icon.svg" width="20"/></a>
+# Broswer `require()` for testing purposes
 
 While development it is very annoying to browserify code `--standalone` in order just to launch tests in browser. Either running `watchify` task for getting `test.html` — it [tends to break](https://github.com/substack/watchify/issues/83) and it always has a lag of compilation. Also all these sourceMaps — a separate bunch of data increasing the size of files and which can always [break debugging](https://github.com/visionmedia/mocha/issues/550).
 
@@ -48,6 +48,8 @@ Best wishes,
 
 Deema.
 
+
+<a href="http://unlicense.org/UNLICENSE"><img src="http://upload.wikimedia.org/wikipedia/commons/6/62/PD-icon.svg" width="20"/></a>
 
 
 [![NPM](https://nodei.co/npm/require-stub.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/require-stub/)
