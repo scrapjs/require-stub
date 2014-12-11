@@ -198,3 +198,10 @@ Mind additional cases:
 	var x = require('ext-e1');
 	assert.equal(x, 345);
 </script>
+
+
+<!-- require index in root dir -->
+<script>
+	var x = require('.');
+	assert.equal(x, 123);
+</script>

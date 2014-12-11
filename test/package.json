@@ -1,5 +1,6 @@
 {
 	"name": "require-stub-test",
+	"main": "index.html",
 	"dependencies": {
 		"x": "*",
 		"inner": "*",

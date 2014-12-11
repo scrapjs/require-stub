@@ -160,9 +160,13 @@ function require(name) {
 
 		//if name to require starts with / or . - try to reach relative path
 		if (/^[\\\.\/]/.test(name)) {
+			//if it has extension - request file straightly
+			//to ignore things like ., .., ./..
 			// ./chai.js, /chai.js
 			path = getAbsolutePath(currDir + name);
-			sourceCode = requestFile(path);
+			if (path.slice(-3) === '.js' || path.slice(-5) === '.json'){
+				sourceCode = requestFile(path);
+			}
 
 			// ./chai → ./chai.js
 			if (!sourceCode) {
