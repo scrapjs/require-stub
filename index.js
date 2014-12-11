@@ -155,6 +155,9 @@ function require(name) {
 		//clear dir
 		if (name.slice(-1) === '/') name = name.slice(0, -1);
 
+		//lower
+		name = name.toLowerCase();
+
 		//try to reach module by it’s name as path, if it has extension
 		//./chai/a.js, ./chai/a.json
 		if (name.split('/').slice(-1)[0].split('.js').length > 1) {

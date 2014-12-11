@@ -184,3 +184,10 @@ Mind additional cases:
 	var ijson = require('./i.json');
 	assert.deepEqual(ijson, {a:1});
 </script>
+
+
+<!-- inner module camel name -->
+<script>
+	var i = require('x/Some');
+	assert.equal(i, 123);
+</script>
