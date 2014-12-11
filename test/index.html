@@ -181,7 +181,7 @@ Mind additional cases:
 
 <!-- json path -->
 <script>
-	var ijson = require('./i.json');
+	var ijson = require('./i');
 	assert.deepEqual(ijson, {a:1});
 </script>
 
@@ -190,4 +190,11 @@ Mind additional cases:
 <script>
 	var i = require('x/Some');
 	assert.equal(i, 123);
+</script>
+
+
+<!-- conflicting relative module names -->
+<script>
+	var x = require('ext-e1');
+	assert.equal(x, 345);
 </script>

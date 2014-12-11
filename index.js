@@ -152,29 +152,42 @@ function require(name) {
 			name = pkg.browser[name] || pkg.browser[unext(name) + '.js' ] || name;
 		}
 
-		//clear dir
+		//clear dir on the end
 		if (name.slice(-1) === '/') name = name.slice(0, -1);
 
 		//lower
 		name = name.toLowerCase();
 
-		//try to reach module by it’s name as path, if it has extension
-		//./chai/a.js, ./chai/a.json
-		if (name.split('/').slice(-1)[0].split('.js').length > 1) {
+		//if name to require starts with / or . - try to reach relative path
+		if (/^[\\\.\/]/.test(name)) {
+			// ./chai.js, /chai.js
 			path = getAbsolutePath(currDir + name);
-			var sourceCode = requestFile(path);
-		}
-
-		//if no extension - try to reach .js or /index.js
-		else if (/[\.\\]/.test(name[0])) {
-			//./chai/a
-			path = getAbsolutePath(currDir + name + '.js');
 			sourceCode = requestFile(path);
 
-			//./chai/a/index.js
+			// ./chai → ./chai.js
+			if (!sourceCode) {
+				path = getAbsolutePath(currDir + name + '.js');
+				sourceCode = requestFile(path);
+			}
+
+			// ./chai → ./chai.json
+			if (!sourceCode) {
+				path = getAbsolutePath(currDir + name + '.json');
+				sourceCode = requestFile(path);
+			}
+
+			// ./chai → ./chai/index.js
 			if (!sourceCode) {
 				path = getAbsolutePath(currDir + name + '/index.js');
 				sourceCode = requestFile(path);
+			}
+
+			//if relative path triggered - set proper name
+			// ./chai → module/chai/index.js
+			if (sourceCode) {
+				// name = name.replace(/^\.\//)
+				name = name.replace(/\.[\\\/]/, currDir);
+				name = name.replace(pkg._dir, pkg.name + '/');
 			}
 		}
 
