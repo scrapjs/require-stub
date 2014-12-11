@@ -1,6 +1,6 @@
 {
   "name": "require-stub",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "description": "Require stub for browser",
   "main": "index.js",
   "scripts": {
