@@ -1,12 +1,12 @@
 {
-	"name": "require-stub-test",
-	"main": "index.html",
-	"dependencies": {
-		"x": "*",
-		"inner": "*",
-		"mymod": "*",
-		"ext-e1": "*"
-	},
-	"devDependencies": {
-	}
+  "name": "require-stub-test",
+  "main": "index.html",
+  "dependencies": {
+    "x": "*",
+    "inner": "*",
+    "mymod": "*",
+    "ext-e1": "*",
+    "contains": "~0.1.1"
+  },
+  "devDependencies": {}
 }

@@ -148,7 +148,7 @@ function require(name) {
 		var sourceCode, path;
 
 		//try to map to browser version (defined in "browser" dict in "package.json")
-		if (pkg && pkg.browser) {
+		if (pkg && pkg.browser && typeof pkg.browser !== 'string') {
 			name = pkg.browser[name] || pkg.browser[unext(name) + '.js' ] || name;
 		}
 
