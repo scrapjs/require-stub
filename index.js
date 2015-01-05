@@ -536,7 +536,13 @@ function evalScript(obj){
 		//eval fake script
 		else {
 			if (depth++ > maxDepth) throw Error('Too deep');
-			eval(obj.code);
+			var code = obj.code;
+
+			//add source urls
+			code += '\n//# sourceURL=' + obj.src;
+			code += '\n//@ sourceURL=' + obj.src;
+
+			eval(code);
 			depth--;
 		}
 	}
