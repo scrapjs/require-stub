@@ -1,13 +1,9 @@
-# Broswer `require()` for testing purposes
+# Broswer `require()` for development
 
-While development it is very annoying to browserify code `--standalone` in order just to launch tests in browser. Either running `watchify` task for getting `test.html` — it [tends to break](https://github.com/substack/watchify/issues/83) and it always has a lag of compilation. Also all these sourceMaps — a separate bunch of data increasing the size of files and which can always [break debugging](https://github.com/visionmedia/mocha/issues/550).
-
-I want just to doubleclick the `test.html`, or launch `http-server` in the project’s folder, and develop via tests as I used to when I didn’t know about node modules.
-
-So here is a script to support `require` calls synchronously in-browser.
+Provide synchronous `require` in browser.
 
 
-```shell
+```
 $ npm install require-stub
 ```
 
@@ -37,7 +33,7 @@ Required scripts are evaled, so to provide module scopes.
 
 # Precautions
 
-* Don’t require stuff runtime: it is bad for performance, it causes tons of logs and it badly resolves deps, as far current script is known only during the initial run.
+* Don’t require stuff runtime: it is bad for performance, it produces lots of logs and it badly resolves deps, as far current script is known only during the initial run.
 * If something causes recursion — clear session storage.
 * Don’t use in production: dynamic evals proved to be ~3x slower than browserified code. Though it is good for perf testing.
 * Avoid global variable name the same as any inner module name if it’s value isn’t the module itself.
