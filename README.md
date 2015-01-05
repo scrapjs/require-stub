@@ -1,6 +1,6 @@
-# Broswer `require()` for development
+# Broswer `require()`
 
-Provide synchronous `require` in browser.
+Provide synchronous `require` in browser. For development purposes only.
 
 
 ```

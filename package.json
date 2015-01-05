@@ -16,7 +16,8 @@
   "keywords": [
     "require",
     "commonjs",
-    "browserify"
+    "browserify",
+    "webpack"
   ],
   "author": "Deema Evanov",
   "license": "MIT",
