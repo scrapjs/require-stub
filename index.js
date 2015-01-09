@@ -5,13 +5,10 @@
 */
 
 
-//TODO: wrap requirements into scopes (seems that it’s ok now - why?)
 //TODO: load remote requirements (github ones, like dfcreative/color)
 //TODO: add splashscreen or some notification of initial loading
 //TODO: ensure that there’re no extra-modules loaded (fully browserifyable, no fake-paths parsing)
 //TODO: make it work in web-workers
-//FIXME: circular deps, esp. when require('pkgName.js') instead of index.js, where pkgName.js is different file. Count? Try to clear cache.
-//TODO: show lines in errors
 
 
 (function(global){
@@ -53,35 +50,6 @@ var packages = {};
 /** stack of errors to log */
 var errors = [];
 
-/** list of native node modules */
-var nativeModules = {
-	'assert': false,
-	'buffer': true,
-	'child_process': true,
-	'cluster': true,
-	'crypto': false,
-	'dns': true,
-	'domain': true,
-	'events': true,
-	'fs': true,
-	'http': true,
-	'https': true,
-	'net': true,
-	'os': true,
-	'path': true,
-	'punycode': true,
-	'querystring': true,
-	'readline': true,
-	'stream': true,
-	'string_decoder': true,
-	'tls': true,
-	'dgram': true,
-	'url': true,
-	'util': false,
-	'vm': true,
-	'zlib': true
-};
-
 
 //script run emulation
 var fakeCurrentScript, fakeStack = [];
@@ -99,6 +67,11 @@ try {
 	//reach root (initial) package.json (closest one to the current url)
 	var selfPkg = requestClosestPkg(getAbsolutePath(''), true);
 
+	//load browser builtins
+	var currDir = getDir(getAbsolutePath(getCurrentScript().src));
+	requestPkg(currDir);
+
+
 	//clear cache, if current package has changed
 	var savedModuleName = sessionStorage.getItem('rs-saved-name');
 	if (savedModuleName && selfPkg.name !== savedModuleName || savedModuleName === null) {
@@ -107,7 +80,6 @@ try {
 	}
 
 	if (!selfPkg) console.warn('Can’t find main package.json by `' + rootPath + '` nor by `' +  getAbsolutePath('') + '`.');
-
 } catch (e){
 	throw e;
 }
@@ -128,6 +100,13 @@ function require(name) {
 	if (!name) throw Error('Bad module name `' + name + '`', location);
 
 	console.groupCollapsed('require(\'' + name + '\') ', location);
+
+
+	//if package redirect - use redirect name
+	if (typeof packages[name] === 'string') {
+		name = packages[name];
+	}
+
 
 	//try to fetch existing module
 	var result = getModule(unext(name.toLowerCase()));
@@ -152,14 +131,11 @@ function require(name) {
 			name = pkg.browser[name] || pkg.browser[unext(name) + '.js' ] || name;
 		}
 
-		//clear dir on the end
-		if (name.slice(-1) === '/') name = name.slice(0, -1);
-
 		//lower
 		name = name.toLowerCase();
 
-		//if name to require starts with / or . - try to reach relative path
-		if (/^[\\\.\/]/.test(name)) {
+		//if name starts with path symbols - try to reach relative path
+		if (/^\.\.|^[\\\/]|^\.[\\\/]/.test(name)) {
 			//if it has extension - request file straightly
 			//to ignore things like ., .., ./..
 			// ./chai.js, /chai.js
@@ -213,162 +189,76 @@ function require(name) {
 			if (parts.length > 1) {
 				var modulePrefix = parts[0];
 				var tpkg;
+
+				//FIXME: ensure basic package is loaded, e. g. require('some-lib/x/y.js')
+
 				if (tpkg = packages[modulePrefix]) {
-					var innerPath = unext(parts.slice(1).join('/'));
-					innerPath = tpkg.browser[innerPath] || tpkg.browser[innerPath + '.js'] || innerPath;
-					path = getAbsolutePath(tpkg._dir + innerPath + '.js');
+					var innerPath = getEntry(tpkg, parts.slice(1).join('/'));
+					path = getAbsolutePath(tpkg._dir + innerPath);
 
 					sourceCode = requestFile(path);
 				}
 			}
 		}
 
-		//if found - eval script
-		if (sourceCode) {
-			try {
-				evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-			} catch(e) {throw e;}
-			finally{
-				console.groupEnd();
+
+		//try to fetch dependency from all the known (registered) packages
+		if (!sourceCode) {
+			var tPkg;
+			if (packages[name] && typeof packages[name] !== 'string') {
+				tPkg = packages[name];
+				path = tPkg._dir + getEntry(tPkg);
+				sourceCode = requestFile(path);
 			}
 
-			return getModule(name);
+			else {
+				for (var pkgName in packages) {
+					tPkg = packages[pkgName];
+					if (tPkg && tPkg.name === name) {
+						//fetch browser field beforehead
+						path = tPkg._dir + getEntry(tPkg);
+						sourceCode = requestFile(path);
+						if (sourceCode) break;
+					}
+				}
+			}
 		}
 
-		//if is not found, try to reach dependency from the current script package.json
-		if (pkg) {
+		//if is not found, try to reach dependency from the current script's package.json (for modules which are not deps)
+		if (!sourceCode && pkg) {
 			var pkgDir = pkg._dir;
-			console.log('load dependency from', pkgDir + 'package.json');
 
 			//try to reach dependency’s package.json and get path from it
 			var depPkg = requestPkg(pkgDir + 'node_modules/' + name + '/');
+
 			if (depPkg) {
-				if (!depPkg.browser) {
-					depPkg.browser = 'index.js';
-				}
-				else {
-					depPkg.browser = unext(depPkg.browser) + '.js';
-				}
-				if (!depPkg.main) {
-					depPkg.main = 'index.js';
-				}
-				else {
-					depPkg.main = unext(depPkg.main) + '.js';
-				}
-				path = depPkg._dir + depPkg.browser;
+				depPkg = normalizePkg(depPkg);
+				path = depPkg._dir + getEntry(depPkg);
 				sourceCode = requestFile(path);
-				if (sourceCode) {
-					try{
-						evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-					}catch(e){throw e}
-					finally{
-						console.groupEnd();
-					}
-					return getModule(name);
-				}
-			}
-		}
-
-		//try to fetch dependency from all the known (registered) packages
-		var tPkg;
-		for (var pkgName in packages) {
-			tPkg = packages[pkgName];
-			if (tPkg.name === name) {
-				//fetch browser field beforehead
-				path = tPkg._dir + tPkg.browser;
-				sourceCode = requestFile(path);
-				if (!sourceCode) {
-					path = tPkg._dir + tPkg.main;
-					sourceCode = requestFile(path);
-				}
-				if (sourceCode) {
-					try{
-						evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-					}catch(e){throw e}
-					finally{
-						console.groupEnd();
-					}
-					return getModule(name);
-				}
-			}
-		}
-
-
-		//if is not found - try to fetch from node_modules folder, if any (no need package.json)
-		if (require.guessPath) {
-			var commonPaths = [
-				'node_modules/{{name}}/index.js',
-				'node_modules/{{name}}/{{name}}.js',
-				'node_modules/{{name}}/lib/{{name}}.js',
-				'node_modules/{{name}}/lib/index.js',
-				'node_modules/{{name}}/src/{{name}}.js',
-				'node_modules/{{name}}/src/index.js',
-				'node_modules/{{name}}/dist/{{name}}.js'
-			];
-
-			//try relative node_modules folder
-			for (var i = 0, path; i < commonPaths.length; i++){
-				path = commonPaths[i].replace(/{{name}}/ig, name);
-				path = currDir + path;
-				sourceCode = requestFile(path);
-				if (sourceCode) {
-					try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-					}catch(e){throw e}
-					finally{
-						console.groupEnd();
-					}
-					return getModule(name);
-				}
-			}
-
-			//try initial node_modules folder
-			if (currPath !== currDir) {
-				for (var i = 0, path; i < commonPaths.length; i++){
-					path = commonPaths[i].replace(/{{name}}/ig, name);
-					path = currPath + path;
-					sourceCode = requestFile(path);
-					if (sourceCode) {
-						try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-						}catch(e){throw e}
-						finally{
-							console.groupEnd();
-						}
-						return getModule(name);
-					}
-				}
-			}
-
-			//try root node_modules folder
-			if (rootPath !== currPath && rootPath !== currDir) {
-				for (var i = 0, path; i < commonPaths.length; i++){
-					path = commonPaths[i].replace(/{{name}}/ig, name);
-					path = rootPath + path;
-					sourceCode = requestFile(path);
-					if (sourceCode) {
-						try{evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-						}catch(e){throw e}
-						finally{
-							console.groupEnd();
-						}
-						return getModule(name);
-					}
-				}
 			}
 		}
 
 
 		//if no folder guessed - try to load from github
-		if (require.fetchFromGithub) {
+		if (require.fetchFromGithub) {}
+	}
 
+	//if found - eval script
+	if (sourceCode) {
+		try {
+			evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
+		} catch (e) {
+			throw e;
 		}
+		finally{
+			console.groupEnd();
+		}
+
+		return getModule(name);
 	}
 
 	//close require group
 	console.groupEnd();
-
-
-	//force native modules throw error
-	if (nativeModules[name]) throw Error('Can’t include native node module `' + name + '` in browser');
 
 
 	//save error to log
@@ -392,116 +282,6 @@ function getModule(name){
 }
 
 
-/** return dir from path */
-function getDir(path){
-	var arr = path.split(/[\\\/]/);
-	arr.pop();
-	return arr.join('/') + '/';
-}
-
-
-/** return absolute path */
-function getAbsolutePath(path){
-	var a = document.createElement('a');
-	a.href = path;
-	var absPath = a.href.split('?')[0];
-	absPath = absPath.split('#')[0];
-	return absPath;
-	// return a.origin + a.pathname;
-}
-
-
-/** return file by path */
-function requestFile(path){
-	// console.log('resolve', path)
-	//FIXME: XHR is forbidden without server. Try to resolve via script/image/etc
-	try {
-		request = new XMLHttpRequest();
-
-		// `false` makes the request synchronous
-		request.open('GET', path, false);
-		request.send();
-	}
-
-	catch (e) {
-		return false;
-	}
-
-	finally {
-		if (request.status === 200) {
-			return request.responseText || request.response;
-		}
-	}
-
-	return false;
-}
-
-
-/** Return closest package to the path */
-function requestClosestPkg(path, force) {
-	var file;
-	if (path[path.length - 1] === '/') path = path.slice(0, -1);
-	while (path) {
-		pkg = requestPkg(path, force);
-		if (pkg) {
-			return pkg;
-		}
-		path = path.slice(0, path.lastIndexOf('/'));
-	}
-	return false;
-}
-
-
-/**
- * Return package.json parsed by the path requested, or false
- */
-function requestPkg(path, force){
-	//return cached pkg
-	if (!force && packages[path]) {
-		return packages[path];
-	}
-
-	if (path[path.length - 1] === '/') path = path.slice(0, -1);
-	file = requestFile(path + '/package.json');
-
-	if (file) {
-		var result = JSON.parse(file);
-		//save path to package.json
-		result._dir = path + '/';
-
-		//save package
-		var name = result.name || path.slice(path.lastIndexOf('/') + 1);
-
-		//preset pkg name
-		if (!result.name) result.name = name;
-		if (!result.browser) result.browser = 'index.js';
-		if (!result.main) result.main = 'index.js';
-
-		if (!packages[name]){
-			packages[name] = result;
-			packages[path] = result;
-		}
-
-		//save all nested packages
-		if (result.dependencies){
-			for (var depName in result.dependencies){
-				requestPkg(path + '/node_modules/' + depName);
-			}
-		}
-		if (require.loadDevDeps) {
-			if (result.devDependencies){
-				for (var depName in result.devDependencies){
-					requestPkg(path + '/node_modules/' + depName);
-				}
-			}
-		}
-
-		return result;
-	}
-	return false;
-}
-
-
 /**
  * eval & create fake script
  * @param {Object} obj {code: sourceCode, src:path, 'data-module-name': name, 'name': name}
@@ -514,7 +294,6 @@ function evalScript(obj){
 	saveModulePath(name, obj.src);
 
 	//create exports for the script
-	//FIXME: why?
 	obj.exports = {};
 
 	// console.groupCollapsed('eval', name)
@@ -679,6 +458,180 @@ function getCurrentScript(){
 	return scripts[scripts.length - 1];
 }
 
+
+
+/** return dir from path */
+function getDir(path){
+	var arr = path.split(/[\\\/]/);
+	arr.pop();
+	return arr.join('/') + '/';
+}
+
+
+/** return absolute path */
+function getAbsolutePath(path){
+	var a = document.createElement('a');
+	a.href = path;
+	var absPath = a.href.split('?')[0];
+	absPath = absPath.split('#')[0];
+	return absPath;
+	// return a.origin + a.pathname;
+}
+
+
+/** return file by path */
+function requestFile(path){
+	// console.log('resolve', path)
+	//FIXME: XHR is forbidden without server. Try to resolve via script/image/etc
+	try {
+		request = new XMLHttpRequest();
+
+		// `false` makes the request synchronous
+		request.open('GET', path, false);
+		request.send();
+	}
+
+	catch (e) {
+		return false;
+	}
+
+	finally {
+		if (request.status === 200) {
+			return request.responseText || request.response;
+		}
+	}
+
+	return false;
+}
+
+
+/** Return closest package to the path */
+function requestClosestPkg(path, force) {
+	var file;
+	if (path[path.length - 1] === '/') path = path.slice(0, -1);
+	while (path) {
+		pkg = requestPkg(path, force);
+		if (pkg) {
+			return pkg;
+		}
+		path = path.slice(0, path.lastIndexOf('/'));
+	}
+	return {};
+}
+
+
+/**
+ * Return package.json parsed by the path requested, or false
+ */
+function requestPkg(path, force){
+	//return cached pkg
+	if (!force && packages[path]) {
+		return packages[path];
+	}
+
+	if (path[path.length - 1] === '/') path = path.slice(0, -1);
+	file = requestFile(path + '/package.json');
+
+	if (file) {
+		var result = JSON.parse(file);
+		//save path to package.json
+		result._dir = path + '/';
+
+		//save package
+		var name = result.name || path.slice(path.lastIndexOf('/') + 1);
+
+		//preset pkg name
+		if (!result.name) result.name = name;
+		normalizePkg(result);
+
+		if (!packages[name]){
+			packages[name] = result;
+		}
+
+		//save all nested packages
+		if (result.dependencies){
+			for (var depName in result.dependencies){
+				requestPkg(path + '/node_modules/' + depName);
+			}
+		}
+		//save each browser binding as available package
+		if (result.browser && typeof result.browser !== 'string'){
+			var browserName, ext, parts;
+			for (var depName in result.browser){
+				browserName = result.browser[depName];
+				parts = browserName.split('.');
+				ext = parts[parts.length - 1];
+				if (parts.length > 1 && /json|js|html/.test(ext)) {
+					packages[depName] = browserName.replace(/^\./, name);
+				}
+				//require bound pkg
+				else {
+					packages[depName] = requestPkg(browserName);
+				}
+			}
+		}
+		if (require.loadDevDeps) {
+			if (result.devDependencies){
+				for (var depName in result.devDependencies){
+					requestPkg(path + '/node_modules/' + depName);
+				}
+			}
+		}
+
+		return result;
+	}
+	return;
+}
+
+
+/** Normalize package fields */
+function normalizePkg(pkg){
+	if (!pkg.main) {
+		pkg.main = 'index';
+	}
+
+	// pkg.main = normalizePath(pkg.main);
+
+	if (!pkg.browser) {
+		pkg.browser = pkg.main;
+	}
+
+	if (typeof pkg.browser === 'string') {
+		pkg.browser = normalizePath(pkg.browser);
+	}
+
+
+	return pkg;
+}
+
+/** Ensure path points to a file w/o shortcuts */
+function normalizePath(path){
+	if (path[path.length - 1] === '/' || path[path.length - 1] === '\\'){
+		path += 'index.js';
+	}
+	else if (path.slice(-3) !== '.js' && path.slice(-5) !== '.json' && path.slice(-5) !== '.html') {
+		path = unext(path) + '.js';
+	}
+
+	return path;
+}
+
+/** Get entry file from the package */
+function getEntry(pkg, name){
+	if (pkg) {
+		if (!name) name = pkg.main || 'index.js';
+
+		if (pkg.browser) {
+			if (typeof pkg.browser === 'string') {
+				name = pkg.browser;
+			} else if (pkg.browser[name] || pkg.browser[normalizePath(name)]) {
+				name = pkg.browser[name] || pkg.browser[normalizePath(name)];
+			}
+		}
+	}
+
+	return normalizePath(name);
+}
 
 
 /**

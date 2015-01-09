@@ -10,25 +10,27 @@ Mind additional cases:
 
 -->
 
-<script>console.time('rs')</script>
 
 <script>
 	//add location query
 	if (!location.search) location += '?a=123'
 </script>
 
-<!-- <script src="../node_modules/chai/chai.js"></script>
+<script src="../index.js"></script>
+
+
+<script src="../node_modules/chai/index.js"></script>
+
+
 <script>
 	var assert = require('chai').assert;
 </script>
--->
-
-<script src="../index.js"></script>
-
-<script>var assert = require('assert');</script>
 
 
 
+
+
+<script>console.time('rs')</script>
 <!-- external module -->
 <!-- <script src="node_modules/modular/index.js"></script> -->
 <script>
@@ -202,7 +204,7 @@ Mind additional cases:
 
 <!-- require index in root dir -->
 <script>
-	var x = require('.');
+	var x = require('./');
 	assert.equal(x, 123);
 </script>
 
@@ -210,4 +212,33 @@ Mind additional cases:
 <!-- require name as string method -->
 <script>
 	var c = require('contains');
+</script>
+
+<!-- core modules -->
+<script>
+	require('assert');
+	require('buffer');
+	require('child_process');
+	require('cluster');
+	require('crypto');
+	require('dns');
+	require('domain');
+	require('events');
+	require('fs');
+	require('http');
+	require('https');
+	require('net');
+	require('os');
+	require('path');
+	require('punycode');
+	require('querystring');
+	require('readline');
+	require('stream');
+	require('string_decoder');
+	require('tls');
+	require('dgram');
+	require('url');
+	require('util');
+	require('vm');
+	require('zlib');
 </script>

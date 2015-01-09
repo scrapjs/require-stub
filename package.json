@@ -26,8 +26,9 @@
   },
   "homepage": "https://github.com/dfcreative/require-stub",
   "devDependencies": {
-    "chai": "*",
-    "assert": "~1.1.2",
-    "util": "~0.10.3"
+    "chai": "*"
+  },
+  "dependencies": {
+    "browser-builtins": "*"
   }
 }
