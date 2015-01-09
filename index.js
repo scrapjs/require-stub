@@ -4,7 +4,7 @@
 * Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
 */
 
-
+//TODO: require html as a string
 //TODO: load remote requirements (github ones, like dfcreative/color)
 //TODO: add splashscreen or some notification of initial loading
 //TODO: ensure that there’re no extra-modules loaded (fully browserifyable, no fake-paths parsing)
@@ -38,7 +38,7 @@ require.fetchFromGithub = false;
 require.loadDevDeps = false;
 
 
-/** modules storage, moduleName: moduleExports  */
+/** modules storage, moduleName: moduleScriptObject (name, src, exports)  */
 var modules = require.modules = {};
 
 /** paths-names dict, modulePath: moduleName */
@@ -186,16 +186,17 @@ function require(name) {
 		//if there is a package named by the first component of the required path - try to fetch module’s file 'a/b'
 		if (!sourceCode) {
 			var parts = name.split('/');
+
 			if (parts.length > 1) {
-				var modulePrefix = parts[0];
-				var tpkg;
+				var modulePrefix = parts[0], tpkg;
 
-				//FIXME: ensure basic package is loaded, e. g. require('some-lib/x/y.js')
+				//ensure package is loaded, e. g. require('some-lib/x/y.js')
+				tpkg = requestPkg(modulePrefix) || requestPkg(currDir + 'node_modules/' + modulePrefix);
 
-				if (tpkg = packages[modulePrefix]) {
-					var innerPath = getEntry(tpkg, parts.slice(1).join('/'));
+				if (tpkg) {
+					//require('util/') or require('util/inherits');
+					var innerPath = parts[1] ? normalizePath(parts.slice(1).join('/')) : getEntry(tpkg);
 					path = getAbsolutePath(tpkg._dir + innerPath);
-
 					sourceCode = requestFile(path);
 				}
 			}
@@ -229,7 +230,7 @@ function require(name) {
 			var pkgDir = pkg._dir;
 
 			//try to reach dependency’s package.json and get path from it
-			var depPkg = requestPkg(pkgDir + 'node_modules/' + name + '/');
+			var depPkg = requestPkg(pkgDir + 'node_modules/' + name);
 
 			if (depPkg) {
 				depPkg = normalizePkg(depPkg);
@@ -276,7 +277,7 @@ function require(name) {
 function getModule(name){
 	var currDir = getDir(getCurrentScript().src);
 	var resolvedName = getAbsolutePath(currDir + name);
-	var result = global[name] || global[name[0].toUpperCase() + name.slice(1)] || modules[name] || modules[modulePaths[resolvedName]] || modules[modulePaths[resolvedName+'.js']];
+	var result = global[name] || global[name[0].toUpperCase() + name.slice(1)] || (modules[name] || modules[modulePaths[resolvedName]] || modules[modulePaths[resolvedName+'.js']] || {}).exports;
 
 	return result;
 }
@@ -293,10 +294,8 @@ function evalScript(obj){
 	//save module here (eval is a final step, so module is found)
 	saveModulePath(name, obj.src);
 
-	//create exports for the script
-	obj.exports = {};
 
-	// console.groupCollapsed('eval', name)
+	// console.groupCollapsed('eval', name, obj.src)
 
 	//we need to keep fake <script> tags in order to comply with inner require calls, referencing .currentScript and .src attributes
 	fakeCurrentScript = obj;
@@ -305,17 +304,36 @@ function evalScript(obj){
 		return this[name];
 	};
 
+	//create exports for the script (used within hookExports)
+	if (!('exports' in obj)) obj.exports = {};
+
+	//some module-related things
+	if (!obj.paths) obj.paths = [];
+
+
+	//save new module path
+	modulePaths[obj.src] = name;
+	modulePaths[obj.src.toLowerCase()] = name;
+	modulePaths[obj.getAttribute('src')] = name;
+	modules[name] = obj;
+	modules[unext(name)] = obj;
+	if (/(?:\/|index(?:\.js|\.json)?)$/.test(name)) {
+		modules[name.split(/[\\\/]/)[0]] = obj;
+	}
+
 
 	try {
 		//try to eval json first
 		if (obj.src.slice(-5) === '.json') {
-			global.exports = JSON.parse(obj.code);
+			obj.exports = JSON.parse(obj.code);
 		}
 
 		//eval fake script
 		else {
 			if (depth++ > maxDepth) throw Error('Too deep');
 			var code = obj.code;
+
+			code = ';(function(module, exports){' + code + '\n})(require.modules[\'' + name + '\'], require.modules[\'' + name + '\'].exports);';
 
 			//add source urls
 			code += '\n//# sourceURL=' + obj.src;
@@ -335,116 +353,15 @@ function evalScript(obj){
 	finally {
 		fakeStack.pop();
 		fakeCurrentScript = fakeStack[fakeStack.length - 1];
+		// console.groupEnd();
 	}
-
-
-
-	// console.log('endeval', name, getModule(name))
-	// console.groupEnd();
 }
 
-
-/** Export module emulation */
-var module = global.module = {};
-
-
-// Listen to `module.exports` change
-Object.defineProperty(module, 'exports', {
-	configurable: false,
-	enumerable: false,
-	get: hookExports,
-	set: hookExports
-});
-
-//Listen to `exports` change
-Object.defineProperty(global, 'exports', {
-	configurable: false,
-	enumerable: false,
-	get: hookExports,
-	set: hookExports
-});
-
-
-//any time exports required winthin the new script - create a new module
-var lastExports, lastScript, lastModuleName;
-
-
-/** hook for modules/exports accessors */
-function hookExports(moduleExports){
-	var script = getCurrentScript();
-
-	//if script hasn’t changed - keep current exports
-	if (!arguments.length && script === lastScript) return lastExports;
-
-	//if script changed - create a new module with exports
-	lastScript = script;
-	var moduleName = figureOutModuleName(script);
-
-	//ignore scripts with undefined moduleName/src
-	if (!moduleName) throw Error('Can’t figure out module name. Define it via `data-module="name"` attribute on the script.')
-
-	//save new module path
-	modulePaths[script.src] = moduleName;
-	modulePaths[script.src.toLowerCase()] = moduleName;
-	modulePaths[script.getAttribute('src')] = moduleName;
-
-	//if exports.something = ...
-	lastExports = moduleExports ? moduleExports : script.exports || {};
-
-	lastModuleName = moduleName;
-
-	// console.log('new module', moduleName);
-	//else - save a new module (e.g. enot/index.js)
-	modules[moduleName] = lastExports;
-
-	//save no-js module name (e.g. enot/index)
-	moduleName = unext(moduleName);
-	modules[moduleName] = lastExports;
-
-	//save package name (e.g. enot)
-	if (/(?:\/|index(?:\.js|\.json)?)$/.test(moduleName)) {
-		moduleName = moduleName.split(/[\\\/]/)[0];
-		modules[moduleName] = lastExports;
-	}
-
-	return lastExports;
-}
 
 /** Session storage source code paths saver */
 function saveModulePath(name, val){
 	modulePathsCache[name] = val;
-	sessionStorage.setItem(modulePathsCacheKey, JSON.stringify(modulePathsCache));
-}
-
-
-/** try to retrieve module name from script tag */
-function figureOutModuleName(script){
-	//name is clearly defined
-	var moduleName = script.getAttribute('data-module-name');
-
-	//return parsed name, if pointed
-	if (moduleName) return moduleName.toLowerCase();
-
-	//plugin is in the node_modules
-	var path = script.src;
-
-	//catch dirname after last node_modules dirname, if any
-	var idx = path.lastIndexOf('node_modules');
-	if (idx >= 0){
-		path = path.slice(idx);
-		var matchResult = /node_modules[\/\\](.+)/.exec(path);
-		moduleName = matchResult[1];
-	}
-
-	//else take file name as the module name
-	if (!moduleName) {
-		moduleName = script.getAttribute('src');
-
-		//clear name
-		moduleName = moduleName.split(/[\\\/]/).pop().split('.').shift();
-	}
-
-	return moduleName.toLowerCase();
+	// sessionStorage.setItem(modulePathsCacheKey, JSON.stringify(modulePathsCache));
 }
 
 
@@ -559,6 +476,8 @@ function requestPkg(path, force){
 			var browserName, ext, parts;
 			for (var depName in result.browser){
 				browserName = result.browser[depName];
+				if (!browserName) continue;
+
 				parts = browserName.split('.');
 				ext = parts[parts.length - 1];
 				if (parts.length > 1 && /json|js|html/.test(ext)) {
@@ -641,6 +560,40 @@ function unext(name){
 	if (/\.[a-z]+$/.test(name)) return name.split('.').slice(0, -1).join('.');
 	return name;
 }
+
+
+
+
+/** Shim global module & exports */
+// Listen to `module.exports` change
+// Object.defineProperty(global, 'module', {
+// 	configurable: false,
+// 	enumerable: false,
+// 	get: warn,
+// 	set: warn
+// });
+
+// //Listen to `exports` change
+// Object.defineProperty(global, 'exports', {
+// 	configurable: false,
+// 	enumerable: false,
+// 	get: warn,
+// 	set: warn
+// });
+
+// // /** Simple exports hook */
+// function warn(moduleExports){
+// 	throw Error('Please, use `require` to load ' + getCurrentScript().src + '.');
+// }
+
+
+
+/** Define globals */
+global.process = require('process');
+global.Buffer = require('buffer').Buffer;
+
+
+//FIXME: __filename, __dirname
 
 
 })(window);

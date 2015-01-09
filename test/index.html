@@ -1,244 +1,28 @@
 <!doctype html>
 <title>Require tests</title>
-
-<!--
-
-Mind additional cases:
-- color-space tests
-- chai
-- mocha
-
--->
-
-
-<script>
-	//add location query
-	if (!location.search) location += '?a=123'
-</script>
+<link rel="stylesheet" type="text/css" href="./node_modules/mocha/mocha.css">
 
 <script src="../index.js"></script>
 
 
-<script src="../node_modules/chai/index.js"></script>
-
-
 <script>
-	var assert = require('chai').assert;
+	var mocha = require('mocha');
+	var assert = require('chai/index.js').assert;
 </script>
 
 
+<div id="mocha"></div>
 
 
-
-<script>console.time('rs')</script>
-<!-- external module -->
-<!-- <script src="node_modules/modular/index.js"></script> -->
 <script>
-	var modular = require('modular');
-	assert.equal(modular, 123);
-</script>
-
-<!-- external exports -->
-<!-- <script src="node_modules/exporter/index.js"></script> -->
-<script>
-	var exporter = require('exporter');
-	assert.equal(exporter.x, 123)
-</script>
-
-<!-- external module.exports -->
-<!-- <script src="node_modules/modular-exporter/index.js"></script> -->
-<script>
-	var me = require('modular-exporter');
-	assert.equal(me.x, 1)
-</script>
-
-<!-- external module.exports 2 -->
-<!-- <script src="node_modules/modular-exporter-2/index.js"></script> -->
-<script>
-	var me2 = require('modular-exporter-2');
-	assert.equal(me2.x, 2)
-	assert.equal(me.x, 1)
-</script>
-
-<!-- external relaitve path -->
-<!-- <script src="../test/special-module.js"></script> -->
-<script>
-	var spec = require('./special-module');
-	assert.equal(spec, 4);
-</script>
-
-<!-- external name -->
-<script src="./other-module.js" data-module-name="other"></script>
-<script>
-	var oth = require('other');
-	assert.equal(oth, 2);
+	mocha.setup('bdd');
 </script>
 
 
-<!-- inline undefined -->
+<script src="index.js"></script>
+
+
 <script>
-	assert.throws(function(){
-		exports.x = 12
-	})
-</script>
-
-<!-- inline exports -->
-<script data-module-name="inliner">
-	exports.x = 12
-</script>
-<script>
-	var inl = require('inliner');
-	assert.equal(inl.x, 12)
-</script>
-
-<!-- Short module name -->
-<script src="./src/short-module.js"></script>
-<script>
-	var a = require('short-module');
-	assert.equal(a, 1)
-</script>
-
-<!-- Nested module -->
-<!-- <script src="./node_modules/inner/node_modules/innerinner/index.js"></script> -->
-<script>
-	assert.equal(require('innerinner'), 1)
-</script>
-
-<!-- Not hiding the inter-errors-->
-<script>
-	window.addEventListener('load', function(){
-		console.info('Uncaught AssertionError: expected 1 to equal 2 is ok')
-	});
-	assert.equal(1,2);
-</script>
-
-<!-- CamelCased module -->
-<!-- <script src="./CamelModule.js" data-module-name="CamelModule"></script> -->
-<script>
-	assert.equal(require('./camelmodule'), 'CamelModuleExports')
-	assert.equal(require('./CamelModule'), 'CamelModuleExports')
-</script>
-
-<!-- require nonexisting module -->
-<script>
-	assert.throws(function(){
-		require('abc');
-	});
-</script>
-
-<!-- guess-path module -->
-<script>
-	var a = require('./guess-path');
-	assert.equal(a, 1);
-</script>
-
-
-<!-- package.json paths -->
-<script>
-	window.addEventListener('load', function(){
-		console.info('Can’t find module `none` is ok')
-	});
-
-	var x = require('x');
-	assert.equal(x.x, 1);
-	assert.equal(x.y, 2);
-	var y = require('y');
-	assert.equal(y, 2);
-
-	var z = require('z');
-	assert.equal(z, 2);
-</script>
-
-
-<!-- interfering namespaces -->
-<script>
-	var i1 = require('./i1');
-	assert.deepEqual(i1, {i:1});
-	var i2 = require('./i2');
-	assert.deepEqual(i2, {i:2});
-	assert.deepEqual(i1, {i:1});
-	assert.notEqual(i1, i2);
-</script>
-
-
-<script>console.timeEnd('rs');</script>
-
-
-<!-- exports.something = require('something') case -->
-<script>
-	var e1 = require('./e1');
-
-	assert.equal(e1.a, 1);
-	assert.equal(e1.b.c, 2);
-	assert.equal(e1.b.d, 3);
-</script>
-
-
-<!-- submodule -->
-<script>
-	var sm = require('mymod/some');
-	assert.equal(sm, 1);
-</script>
-
-
-<!-- json path -->
-<script>
-	var ijson = require('./i');
-	assert.deepEqual(ijson, {a:1});
-</script>
-
-
-<!-- inner module camel name -->
-<script>
-	var i = require('x/Some');
-	assert.equal(i, 123);
-</script>
-
-
-<!-- conflicting relative module names -->
-<script>
-	var x = require('ext-e1');
-	assert.equal(x, 345);
-</script>
-
-
-<!-- require index in root dir -->
-<script>
-	var x = require('./');
-	assert.equal(x, 123);
-</script>
-
-
-<!-- require name as string method -->
-<script>
-	var c = require('contains');
-</script>
-
-<!-- core modules -->
-<script>
-	require('assert');
-	require('buffer');
-	require('child_process');
-	require('cluster');
-	require('crypto');
-	require('dns');
-	require('domain');
-	require('events');
-	require('fs');
-	require('http');
-	require('https');
-	require('net');
-	require('os');
-	require('path');
-	require('punycode');
-	require('querystring');
-	require('readline');
-	require('stream');
-	require('string_decoder');
-	require('tls');
-	require('dgram');
-	require('url');
-	require('util');
-	require('vm');
-	require('zlib');
+	// mocha.checkLeaks();
+	mocha.run();
 </script>
