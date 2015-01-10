@@ -109,7 +109,7 @@ function require(name) {
 
 
 	//try to fetch existing module
-	var result = getModule(unext(name.toLowerCase()));
+	var result = getModuleExports(unext(name.toLowerCase()));
 	if (result) {
 		console.groupEnd();
 		return result;
@@ -144,6 +144,8 @@ function require(name) {
 				sourceCode = requestFile(path);
 			}
 
+			//FIXME: optimize this
+
 			// ./chai → ./chai.js
 			if (!sourceCode) {
 				path = getAbsolutePath(currDir + name + '.js');
@@ -171,10 +173,6 @@ function require(name) {
 			}
 		}
 
-		//unsuffixize name
-		name = unext(name);
-
-
 		//try to fetch saved in session storage module path
 		//has to be after real paths in order to avoid recursions
 		if (!sourceCode) {
@@ -195,7 +193,7 @@ function require(name) {
 
 				if (tpkg) {
 					//require('util/') or require('util/inherits');
-					var innerPath = parts[1] ? normalizePath(parts.slice(1).join('/')) : getEntry(tpkg);
+					var innerPath = getEntry(tpkg, parts.slice(1).join('/'));
 					path = getAbsolutePath(tpkg._dir + innerPath);
 					sourceCode = requestFile(path);
 				}
@@ -208,6 +206,12 @@ function require(name) {
 			var tPkg;
 			if (packages[name] && typeof packages[name] !== 'string') {
 				tPkg = packages[name];
+
+				//ignore shimmed reference
+				if (tPkg.browser && (tPkg.browser[name] === false || tPkg[normalizePath[name]] === false)) {
+					return getModuleExports(name);
+				}
+
 				path = tPkg._dir + getEntry(tPkg);
 				sourceCode = requestFile(path);
 			}
@@ -255,7 +259,7 @@ function require(name) {
 			console.groupEnd();
 		}
 
-		return getModule(name);
+		return getModuleExports(name);
 	}
 
 	//close require group
@@ -274,12 +278,12 @@ function require(name) {
 
 
 /** retrieve module from storage by name */
-function getModule(name){
+function getModuleExports(name){
 	var currDir = getDir(getCurrentScript().src);
 	var resolvedName = getAbsolutePath(currDir + name);
-	var result = global[name] || global[name[0].toUpperCase() + name.slice(1)] || (modules[name] || modules[modulePaths[resolvedName]] || modules[modulePaths[resolvedName+'.js']] || {}).exports;
+	var md = modules[name] || modules[modulePaths[resolvedName]] || modules[modulePaths[resolvedName+'.js']];
 
-	return result;
+	if (md) return md.exports;
 }
 
 
@@ -538,14 +542,19 @@ function normalizePath(path){
 /** Get entry file from the package */
 function getEntry(pkg, name){
 	if (pkg) {
-		if (!name) name = pkg.main || 'index.js';
-
-		if (pkg.browser) {
+		//get entry name, if none
+		if (!name) {
 			if (typeof pkg.browser === 'string') {
 				name = pkg.browser;
-			} else if (pkg.browser[name] || pkg.browser[normalizePath(name)]) {
-				name = pkg.browser[name] || pkg.browser[normalizePath(name)];
 			}
+		}
+		if (!name) {
+			name = pkg.main || 'index';
+		}
+
+		//map name, if map
+		if (typeof pkg.browser !== 'string') {
+			name = pkg.browser[name] || pkg.browser[normalizePath(name)] || name;
 		}
 	}
 
@@ -566,25 +575,25 @@ function unext(name){
 
 /** Shim global module & exports */
 // Listen to `module.exports` change
-// Object.defineProperty(global, 'module', {
-// 	configurable: false,
-// 	enumerable: false,
-// 	get: warn,
-// 	set: warn
-// });
+Object.defineProperty(global, 'module', {
+	configurable: false,
+	enumerable: false,
+	get: warn,
+	set: warn
+});
 
-// //Listen to `exports` change
-// Object.defineProperty(global, 'exports', {
-// 	configurable: false,
-// 	enumerable: false,
-// 	get: warn,
-// 	set: warn
-// });
+//Listen to `exports` change
+Object.defineProperty(global, 'exports', {
+	configurable: false,
+	enumerable: false,
+	get: warn,
+	set: warn
+});
 
-// // /** Simple exports hook */
-// function warn(moduleExports){
-// 	throw Error('Please, use `require` to load ' + getCurrentScript().src + '.');
-// }
+/** Simple exports hook */
+function warn(moduleExports){
+	throw Error('Please, use `require` to load ' + getCurrentScript().src + '.');
+}
 
 
 
