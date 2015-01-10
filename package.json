@@ -19,8 +19,8 @@
     "browserify",
     "webpack"
   ],
-  "author": "Deema Evanov",
-  "license": "MIT",
+  "author": "Deema Ywanov <dfcreative@gmail.com>",
+  "license": "Unlicensed",
   "bugs": {
     "url": "https://github.com/dfcreative/require-stub/issues"
   },
