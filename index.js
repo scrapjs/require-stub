@@ -29,9 +29,6 @@ else modulePathsCache = {};
 /** try to look up for script (causes 404 requests) */
 require.lookUpModules = true;
 
-/** try to guess file path, if no package.json found (causes intense 404 traffic)*/
-require.guessPath = true;
-
 /** try to fetch requirement from github, if not found */
 require.fetchFromGithub = false;
 
@@ -580,32 +577,6 @@ function unext(name){
 	if (/\.[a-z]+$/.test(name)) return name.split('.').slice(0, -1).join('.');
 	return name;
 }
-
-
-
-
-/** Shim global module & exports */
-// Listen to `module.exports` change
-Object.defineProperty(global, 'module', {
-	configurable: false,
-	enumerable: false,
-	get: warn,
-	set: warn
-});
-
-//Listen to `exports` change
-Object.defineProperty(global, 'exports', {
-	configurable: false,
-	enumerable: false,
-	get: warn,
-	set: warn
-});
-
-/** Simple exports hook */
-function warn(moduleExports){
-	throw Error('Please, use `require` to load ' + getCurrentScript().src + '.');
-}
-
 
 
 /** Define globals */
