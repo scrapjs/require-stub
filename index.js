@@ -423,7 +423,8 @@ function requestFile(path){
 	finally {
 		//return successfull path
 		if (request.status === 200) {
-			return request.responseText || request.response;
+			//newline keeps non-falsy result
+			return (request.responseText || request.response) + '\n';
 		}
 		//save failed path to ignore
 		else {
@@ -562,7 +563,7 @@ function getEntry(pkg, name){
 		}
 
 		//map name, if map
-		if (typeof pkg.browser !== 'string') {
+		if (pkg.browser && typeof pkg.browser !== 'string') {
 			name = pkg.browser[name] || pkg.browser[normalizePath(name)] || name;
 		}
 	}

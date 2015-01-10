@@ -198,4 +198,8 @@ describe('require-stub cases', function(){
 		var abcd = require('./exports-prop').z;
 		assert.equal(abcd, 2);
 	});
+
+	it('Empty file case', function(){
+		require('exporter/side');
+	});
 });
