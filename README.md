@@ -13,8 +13,8 @@ $ npm install require-stub
 
 <!-- use require -->
 <script>
-	var chai = require("chai");
-	var enot = require("enot");
+	var assert = require("chai").assert;
+	var emitter = require("emitter");
 
 	//request from package.json
 	var other = require("other-module");
@@ -27,18 +27,15 @@ If you find something isn’t working, report a [bug](https://github.com/dfcreat
 
 ###### How does it work?
 
-Via getters/setters on global `module.exports` and `exports` variables. Synchronous XMLHttpRequest is used to load scripts. To resolve module paths is used `package.json`, if present, and if not - path is guessed.
+Via synchronous XMLHttpRequest. To resolve module paths is used `package.json`, if present, and if not - path is guessed. To stub native packages used [browser-builtins](https://github.com/alexgorbatchev/node-browser-builtins).
 Required scripts are evaled, so to provide module scopes.
 
 
 # Precautions
 
-* Don’t require stuff runtime: it is bad for performance, it produces lots of logs and it badly resolves deps, as far current script is known only during the initial run.
+* Don’t require stuff runtime: it is bad for performance and it produces extra logs.
 * If something causes recursion — clear session storage.
-* Don’t use in production: dynamic evals proved to be ~3x slower than browserified code. Though it is good for perf testing.
-* Avoid global variable name the same as any inner module name if it’s value isn’t the module itself.
-* If you decide to declare modules as script tags - variable names conflict is unavoidable, so name vars differently.
-
+* Don’t use in production: dynamic evals proved to be ~3x slower than browserified code. But it is good for perf testing.
 
 Best wishes,
 
