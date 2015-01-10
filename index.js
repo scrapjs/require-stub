@@ -50,6 +50,9 @@ var packages = {};
 /** stack of errors to log */
 var errors = [];
 
+/** Dict of failed to load files */
+var failedPaths = {};
+
 
 //script run emulation
 var fakeCurrentScript, fakeStack = [];
@@ -134,8 +137,15 @@ function require(name) {
 		//lower
 		name = name.toLowerCase();
 
+		//try to fetch saved in session storage module path
+		//has to be after real paths in order to avoid recursions
+		if (!sourceCode) {
+			path = modulePathsCache[name];
+			if (path) sourceCode = requestFile(path);
+		}
+
 		//if name starts with path symbols - try to reach relative path
-		if (/^\.\.|^[\\\/]|^\.[\\\/]/.test(name)) {
+		if (!sourceCode && /^\.\.|^[\\\/]|^\.[\\\/]/.test(name)) {
 			//if it has extension - request file straightly
 			//to ignore things like ., .., ./..
 			// ./chai.js, /chai.js
@@ -143,8 +153,6 @@ function require(name) {
 			if (path.slice(-3) === '.js' || path.slice(-5) === '.json'){
 				sourceCode = requestFile(path);
 			}
-
-			//FIXME: optimize this
 
 			// ./chai → ./chai.js
 			if (!sourceCode) {
@@ -171,13 +179,6 @@ function require(name) {
 				name = name.replace(/\.[\\\/]/, currDir);
 				name = name.replace(pkg._dir, pkg.name + '/');
 			}
-		}
-
-		//try to fetch saved in session storage module path
-		//has to be after real paths in order to avoid recursions
-		if (!sourceCode) {
-			path = modulePathsCache[name];
-			if (path) sourceCode = requestFile(path);
 		}
 
 
@@ -209,6 +210,7 @@ function require(name) {
 
 				//ignore shimmed reference
 				if (tPkg.browser && (tPkg.browser[name] === false || tPkg[normalizePath[name]] === false)) {
+					console.groupEnd();
 					return getModuleExports(name);
 				}
 
@@ -365,7 +367,7 @@ function evalScript(obj){
 /** Session storage source code paths saver */
 function saveModulePath(name, val){
 	modulePathsCache[name] = val;
-	// sessionStorage.setItem(modulePathsCacheKey, JSON.stringify(modulePathsCache));
+	sessionStorage.setItem(modulePathsCacheKey, JSON.stringify(modulePathsCache));
 }
 
 
@@ -402,7 +404,8 @@ function getAbsolutePath(path){
 
 /** return file by path */
 function requestFile(path){
-	// console.log('resolve', path)
+	if (failedPaths[path]) return false;
+
 	//FIXME: XHR is forbidden without server. Try to resolve via script/image/etc
 	try {
 		request = new XMLHttpRequest();
@@ -413,12 +416,18 @@ function requestFile(path){
 	}
 
 	catch (e) {
+		failedPaths[path] = true;
 		return false;
 	}
 
 	finally {
+		//return successfull path
 		if (request.status === 200) {
 			return request.responseText || request.response;
+		}
+		//save failed path to ignore
+		else {
+			failedPaths[path] = true;
 		}
 	}
 
