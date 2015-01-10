@@ -1,13 +1,14 @@
 ﻿/**
-* Require stub for browser.
-* Prepend this script in head.
-* Set `data-module="name"` attribute on script tag to define module name to register (or it will be parsed as src file name).
-*/
+ * Require stub for browser.
+ * Prepend this script in head.
+ *
+ * @module require-stub
+ */
+
 
 //TODO: require html as a string
-//TODO: load remote requirements (github ones, like dfcreative/color)
+//TODO: load remote requirements (github ones, like harthur/color)
 //TODO: add splashscreen or some notification of initial loading
-//TODO: ensure that there’re no extra-modules loaded (fully browserifyable, no fake-paths parsing)
 //TODO: make it work in web-workers
 
 
