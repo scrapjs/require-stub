@@ -21,21 +21,21 @@ $ npm install require-stub
 </script>
 ```
 
-If you find something isn’t working, report a [bug](https://github.com/dfcreative/require-stub/issues).
+If you find something doesn’t work, report a [bug](https://github.com/dfcreative/require-stub/issues).
 
 
 
 ###### How does it work?
 
-Via synchronous XMLHttpRequest. To resolve module paths is used `package.json`, if present, and if not - path is guessed. To stub native packages used [browser-builtins](https://github.com/alexgorbatchev/node-browser-builtins).
-Required scripts are evaled, so to provide module scopes.
+Via synchronous XMLHttpRequest. To resolve module paths used `package.json` closest to the running page. To stub native packages used [browser-builtins](https://github.com/alexgorbatchev/node-browser-builtins). Required scripts are evaled, so to provide module scopes.
 
 
 # Precautions
 
 * Don’t require stuff runtime: it is bad for performance and it produces extra logs.
-* If something causes recursion — clear session storage.
-* Don’t use in production: dynamic evals proved to be ~3x slower than browserified code. But it is good for perf testing.
+* If something causes recursion (very rare case) — clear session storage.
+* Don’t use in production: dynamic evals proved to be ~3x and more slower than browserified code. But it is good for perf testing.
+* For automated tests use [mochify](https://github.com/mantoni/mochify.js).
 
 Best wishes,
 
