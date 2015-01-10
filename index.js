@@ -12,10 +12,9 @@
 //TODO: make it work in web-workers
 
 
-(function(global){
+;(function(global){
 if (global.require) {
 	throw Error('Turn off `require-stub`: another `require` is on.');
-	return;
 }
 
 
@@ -95,12 +94,11 @@ global.require = require;
 
 
 /** require stub */
-function require(name) {
-	var location = getCurrentScript().src || global.location + '';
+function require(name, currentModule) {
+	currentModule = currentModule || {};
+	var location = currentModule.src || getCurrentScript().src || global.location + '';
 
 	if (!name) throw Error('Bad module name `' + name + '`', location);
-
-	console.groupCollapsed('require(\'' + name + '\') ', location);
 
 
 	//if package redirect - use redirect name
@@ -112,12 +110,14 @@ function require(name) {
 	//try to fetch existing module
 	var result = getModuleExports(unext(name.toLowerCase()));
 	if (result) {
-		console.groupEnd();
 		return result;
 	}
 
 	//get current script dir
-	var currDir = getDir(getAbsolutePath(getCurrentScript().src));
+	var currDir = getDir(getAbsolutePath(location));
+
+
+	console.groupCollapsed('require(\'' + name + '\') ', location);
 
 	//get curr package, if any
 	var pkg = requestClosestPkg(currDir);
@@ -337,7 +337,7 @@ function evalScript(obj){
 			if (depth++ > maxDepth) throw Error('Too deep');
 			var code = obj.code;
 
-			code = ';(function(module, exports){' + code + '\n})(require.modules[\'' + name + '\'], require.modules[\'' + name + '\'].exports);';
+			code = ';(function(module, exports, require, __filename, __dirname){' + code + '\n})(require.modules[\'' + name + '\'], require.modules[\'' + name + '\'].exports, function(name){return require(name, require.modules[\'' + name + '\'])}, \'' + obj.src + '\', \'' + getDir(obj.src) + '\');';
 
 			//add source urls
 			code += '\n//# sourceURL=' + obj.src;
@@ -582,9 +582,6 @@ function unext(name){
 /** Define globals */
 global.process = require('process');
 global.Buffer = require('buffer').Buffer;
-
-
-//FIXME: __filename, __dirname
 
 
 })(window);

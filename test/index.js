@@ -202,4 +202,8 @@ describe('require-stub cases', function(){
 	it('Empty file case', function(){
 		require('exporter/side');
 	});
+
+	it.skip('Runtime calls from different files', function(){
+		//TODO
+	});
 });
