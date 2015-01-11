@@ -4,7 +4,7 @@ Provide synchronous `require` in browser for development purposes. A convenient 
 
 
 ```
-$ npm install require-stub
+$ npm install --save-dev require-stub
 ```
 
 ```html
@@ -14,10 +14,7 @@ $ npm install require-stub
 <!-- use require -->
 <script>
 	var assert = require("chai").assert;
-	var emitter = require("emitter");
-
-	//request from package.json
-	var other = require("other-module");
+	var Emitter = require("emitter");
 </script>
 ```
 
