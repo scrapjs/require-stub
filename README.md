@@ -25,14 +25,14 @@ If you find something doesn’t work, report a [bug](https://github.com/dfcreati
 
 
 
-###### How does it work?
+##### How does it work?
 
 Via synchronous XMLHttpRequest. To resolve module paths used `package.json` closest to the current page. To stub native packages is used [browser-builtins](https://github.com/alexgorbatchev/node-browser-builtins). Required scripts are evaled, so to provide module scopes.
 
 
 # Precautions
 
-* Don’t use in production: dynamic evals proved to be ~3x and more slower than browserified code. But it is good for perf testing.
+* Don’t use in production: dynamic evals proved to be ~3x slower than browserified code. But it is good for perf testing.
 
 
 # Similar efforts
