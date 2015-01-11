@@ -579,9 +579,23 @@ function unext(name){
 }
 
 
-/** Define globals */
-global.process = require('process');
-global.Buffer = require('buffer').Buffer;
+/** Define lazy globals */
+Object.defineProperties(global, {
+	process: {
+		enumerable: true,
+		configurable: true,
+		get: function(){
+			return require('process');
+		}
+	},
+	Buffer: {
+		enumerable: true,
+		configurable: true,
+		get: function(){
+			return require('buffer').Buffer;
+		}
+	}
+});
 
 
 })(window);

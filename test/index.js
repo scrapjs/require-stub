@@ -206,4 +206,9 @@ describe('require-stub cases', function(){
 	it.skip('Runtime calls from different files', function(){
 		//TODO
 	});
+
+	it('Global process, Buffer', function(){
+		assert.equal(process, require('process'));
+		assert.equal(Buffer, require('Buffer').Buffer);
+	});
 });
