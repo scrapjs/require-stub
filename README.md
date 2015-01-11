@@ -1,6 +1,6 @@
 # Broswer `require()`
 
-Provide synchronous `require` in browser. For development purposes only.
+Provide synchronous `require` in browser for development purposes. A convenient replacement for watchify (dynamic, no configs needed). Strives to be compliant with browserify, in that code using `require-stub` is fully browserifyable.
 
 
 ```
@@ -27,15 +27,20 @@ If you find something doesn’t work, report a [bug](https://github.com/dfcreati
 
 ###### How does it work?
 
-Via synchronous XMLHttpRequest. To resolve module paths used `package.json` closest to the running page. To stub native packages used [browser-builtins](https://github.com/alexgorbatchev/node-browser-builtins). Required scripts are evaled, so to provide module scopes.
+Via synchronous XMLHttpRequest. To resolve module paths used `package.json` closest to the current page. To stub native packages is used [browser-builtins](https://github.com/alexgorbatchev/node-browser-builtins). Required scripts are evaled, so to provide module scopes.
 
 
 # Precautions
 
-* Don’t require stuff runtime: it is bad for performance and it produces extra logs.
-* If something causes recursion (very rare case) — clear session storage.
 * Don’t use in production: dynamic evals proved to be ~3x and more slower than browserified code. But it is good for perf testing.
-* For automated tests use [mochify](https://github.com/mantoni/mochify.js).
+
+
+# Similar efforts
+
+* [breq](https://www.npmjs.com/package/breq) — resolves relative requirements.
+* [TKRequire](https://github.com/trausti/TKRequire.js) — resolves relative requirements.
+* [smoothie.js](https://github.com/flowyapps/smoothie) — resolves relative requirements.
+
 
 Best wishes,
 
