@@ -11,8 +11,7 @@
 //TODO: add splashscreen or some notification of initial loading
 //TODO: make it work in web-workers
 //TODO: package.json-less initial page tests
-//TODO: test parent dir requirements
-//TODO: lazify builtin requirements (pequest pkg only when required)
+//TODO: lazify requirements (request pkg only when required)
 
 
 ;(function(global){
