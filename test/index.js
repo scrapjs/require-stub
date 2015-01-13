@@ -1,3 +1,5 @@
+var assert = require('chai').assert;
+
 describe('require-stub cases', function(){
 	it('external module', function(){
 		var modular = require('modular');
@@ -35,7 +37,7 @@ describe('require-stub cases', function(){
 	it('inline undefined', function(){
 		assert.throws(function(){
 			exports.x = 12
-		})
+		});
 	});
 
 	it.skip('inline exports', function(){
@@ -56,13 +58,13 @@ describe('require-stub cases', function(){
 	});
 
 	it('Nested module', function(){
-		assert.equal(require('innerinner'), 1)
+		assert.equal(require('innerinner'), 1);
 	});
 
 	it.skip('Not hiding the inter-error', function(){
-		window.addEventListener('load', function(){
-			console.info('Uncaught AssertionError: expected 1 to equal 2 is ok')
-		});
+		// window.addEventListener('load', function(){
+		// 	console.info('Uncaught AssertionError: expected 1 to equal 2 is ok')
+		// });
 		assert.equal(1,2);
 	});
 
@@ -209,6 +211,17 @@ describe('require-stub cases', function(){
 
 	it('Global process, Buffer', function(){
 		assert.equal(process, require('process'));
-		assert.equal(Buffer, require('Buffer').Buffer);
+		assert.equal(Buffer, require('buffer').Buffer);
+	});
+
+	it('Runtime requirement of single file from different modules', function(){
+		var a, b, c;
+
+		a = require('runtimer/lib/x');
+		b = require('runtimer');
+		c = require('runtimer/lib/y')();
+
+		assert.equal(a,b);
+		// assert.equal(b,c);
 	});
 });

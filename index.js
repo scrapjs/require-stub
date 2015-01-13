@@ -10,19 +10,15 @@
 //TODO: load remote requirements (github ones, like harthur/color)
 //TODO: add splashscreen or some notification of initial loading
 //TODO: make it work in web-workers
+//TODO: package.json-less initial page tests
+//TODO: test parent dir requirements
+//TODO: lazify builtin requirements (pequest pkg only when required)
 
 
 ;(function(global){
 if (global.require) {
-	throw Error('Turn off `require-stub`: another `require` is on.');
+	throw Error('Turn off `require-stub`: another global `require` is on.');
 }
-
-
-/** Cache of once found filepaths. Use them first to resolve modules. */
-var modulePathsCacheKey = 'rs-paths';
-var modulePathsCache = sessionStorage.getItem(modulePathsCacheKey);
-if (modulePathsCache) modulePathsCache = JSON.parse(modulePathsCache);
-else modulePathsCache = {};
 
 
 /** try to look up for script (causes 404 requests) */
@@ -35,14 +31,14 @@ require.fetchFromGithub = false;
 require.loadDevDeps = false;
 
 
-/** modules storage, moduleName: moduleScriptObject (name, src, exports)  */
-var modules = require.modules = {};
-
-/** paths-names dict, modulePath: moduleName */
+/** paths-names dict, `modulePath: module` */
 var modulePaths = require.modulePaths = {};
 
-/** packages storage: `moduleName:package`, `path:package` */
+/** packages storage: `moduleName:package` */
 var packages = {};
+
+/** package paths dict, `path:package` */
+var packagePaths = {};
 
 /** stack of errors to log */
 var errors = [];
@@ -71,14 +67,6 @@ try {
 	var currDir = getDir(getAbsolutePath(getCurrentScript().src));
 	requestPkg(currDir);
 
-
-	//clear cache, if current package has changed
-	var savedModuleName = sessionStorage.getItem('rs-saved-name');
-	if (savedModuleName && selfPkg.name !== savedModuleName || savedModuleName === null) {
-		sessionStorage.clear();
-		sessionStorage.setItem('rs-saved-name', selfPkg.name);
-	}
-
 	if (!selfPkg) console.warn('Can’t find main package.json by `' + rootPath + '` nor by `' +  getAbsolutePath('') + '`.');
 } catch (e){
 	throw e;
@@ -88,187 +76,129 @@ finally{
 }
 
 
-
 /** export function */
 global.require = require;
 
-
 /** require stub */
 function require(name, currentModule) {
+	if (!name) throw Error('Bad module name `' + name + '`', location);
+
+	var origName = name;
+
 	currentModule = currentModule || {};
 	var location = currentModule.src || getCurrentScript().src || global.location + '';
 
-	if (!name) throw Error('Bad module name `' + name + '`', location);
+	//overtake requiring non-relative names
+	if (!isRelativePath(name)) {
+		if (modulePaths[name]) return modulePaths[name].exports;
+	}
 
-
-	//if package redirect - use redirect name
+	//if package redirects - use redirected name
 	if (typeof packages[name] === 'string') {
 		name = packages[name];
 	}
 
-
 	//try to fetch existing module
-	var result = getModuleExports(unext(name.toLowerCase()));
-	if (result) {
-		return result;
-	}
+	if (modulePaths[name]) return modulePaths[name].exports;
 
-	//get current script dir
-	var currDir = getDir(getAbsolutePath(location));
-
-
-	console.groupCollapsed('require(\'' + name + '\') ', location);
-
-	//get curr package, if any
-	var pkg = requestClosestPkg(currDir);
-
-
-	//if not - try to look up for module
+	//if none - try to look up for module
 	if (require.lookUpModules) {
 		var sourceCode, path;
 
-		//try to map to browser version (defined in "browser" dict in "package.json")
-		if (pkg && pkg.browser && typeof pkg.browser !== 'string') {
-			name = pkg.browser[name] || pkg.browser[unext(name) + '.js' ] || name;
-		}
+		console.groupCollapsed('require(\'' + origName + '\') ');
 
-		//lower
-		name = name.toLowerCase();
+		//get current script dir
+		var currDir = getDir(getAbsolutePath(location));
 
-		//try to fetch saved in session storage module path
-		//has to be after real paths in order to avoid recursions
-		if (!sourceCode) {
-			path = modulePathsCache[name];
-			if (path) sourceCode = requestFile(path);
-		}
+		//get curr package, if any
+		var currPkg = requestClosestPkg(currDir);
 
-		//if name starts with path symbols - try to reach relative path
-		if (!sourceCode && /^\.\.|^[\\\/]|^\.[\\\/]/.test(name)) {
-			//if it has extension - request file straightly
-			//to ignore things like ., .., ./..
-			// ./chai.js, /chai.js
+		//map name within current package
+		name = getMappedName(currPkg, name);
+
+		//1. Relative path (starts with .) `./module, ./lib/module`, `..`
+		if (isRelativePath(name)) {
+			//find package. resolve to absolute path
 			path = getAbsolutePath(currDir + name);
-			if (path.slice(-3) === '.js' || path.slice(-5) === '.json'){
-				sourceCode = requestFile(path);
-			}
+		}
 
-			// ./chai → ./chai.js
-			if (!sourceCode) {
-				path = getAbsolutePath(currDir + name + '.js');
-				sourceCode = requestFile(path);
-			}
-
-			// ./chai → ./chai.json
-			if (!sourceCode) {
-				path = getAbsolutePath(currDir + name + '.json');
-				sourceCode = requestFile(path);
-			}
-
-			// ./chai → ./chai/index.js
-			if (!sourceCode) {
-				path = getAbsolutePath(currDir + name + '/index.js');
-				sourceCode = requestFile(path);
-			}
-
-			//if relative path triggered - set proper name
-			// ./chai → module/chai/index.js
-			if (sourceCode) {
-				// name = name.replace(/^\.\//)
-				name = name.replace(/\.[\\\/]/, currDir);
-				name = name.replace(pkg._dir, pkg.name + '/');
-			}
+		//1.1 Absolute paths
+		else if (/^https?:|^[\\\/]/.test(name)) {
+			path = getAbsolutePath(name);
 		}
 
 
-		//if there is a package named by the first component of the required path - try to fetch module’s file 'a/b'
-		if (!sourceCode) {
+		//2. Compound package path `chai/lib/util`, `chai/`
+		else {
 			var parts = name.split('/');
 
-			if (parts.length > 1) {
-				var modulePrefix = parts[0], tpkg;
+			//find package to resolve relative to
+			var targetPkg = packages[parts[0]] || requestPkg(currDir + 'node_modules/' + parts[0]);
 
-				//ensure package is loaded, e. g. require('some-lib/x/y.js')
-				tpkg = requestPkg(modulePrefix) || requestPkg(currDir + 'node_modules/' + modulePrefix);
-
-				if (tpkg) {
-					//require('util/') or require('util/inherits');
-					var innerPath = getEntry(tpkg, parts.slice(1).join('/'));
-					path = getAbsolutePath(tpkg._dir + innerPath);
-					sourceCode = requestFile(path);
-				}
+			if (!targetPkg) {
+				console.groupEnd();
+				throw new Error('Can’t find package.json for `' + parts + '`.');
 			}
+
+			name = getMappedName(targetPkg, parts.slice(1).join('/'));
+
+			//find package, resolve to absolute path
+			path = getAbsolutePath(
+				targetPkg._dir + name
+			);
 		}
 
 
-		//try to fetch dependency from all the known (registered) packages
+		//4. Request file by path
+		path = normalizePath(path);
+
+
+		//path includes extension
+		sourceCode = !!modulePaths[path] || requestFile(path);
+
+		// ./chai → ./chai.js
 		if (!sourceCode) {
-			var tPkg;
-			if (packages[name] && typeof packages[name] !== 'string') {
-				tPkg = packages[name];
-
-				//ignore shimmed reference
-				if (tPkg.browser && (tPkg.browser[name] === false || tPkg[normalizePath[name]] === false)) {
-					console.groupEnd();
-					return getModuleExports(name);
-				}
-
-				path = tPkg._dir + getEntry(tPkg);
-				sourceCode = requestFile(path);
-			}
-
-			else {
-				for (var pkgName in packages) {
-					tPkg = packages[pkgName];
-					if (tPkg && tPkg.name === name) {
-						//fetch browser field beforehead
-						path = tPkg._dir + getEntry(tPkg);
-						sourceCode = requestFile(path);
-						if (sourceCode) break;
-					}
-				}
-			}
+			path = unext(path) + '.js';
+			sourceCode = !!modulePaths[path] || requestFile(path);
 		}
 
-		//if is not found, try to reach dependency from the current script's package.json (for modules which are not deps)
-		if (!sourceCode && pkg) {
-			var pkgDir = pkg._dir;
+		// ./chai → ./chai.json
+		if (!sourceCode) {
+			path = unext(path) + '.json';
+			sourceCode = !!modulePaths[path] || requestFile(path);
+		}
 
-			//try to reach dependency’s package.json and get path from it
-			var depPkg = requestPkg(pkgDir + 'node_modules/' + name);
-
-			if (depPkg) {
-				depPkg = normalizePkg(depPkg);
-				path = depPkg._dir + getEntry(depPkg);
-				sourceCode = requestFile(path);
-			}
+		// ./chai → ./chai/index.js
+		if (!sourceCode) {
+			path = unext(path) + '/index.js';
+			sourceCode = !!modulePaths[path] || requestFile(path);
 		}
 
 
-		//if no folder guessed - try to load from github
-		if (require.fetchFromGithub) {}
-	}
-
-	//if found - eval script
-	if (sourceCode) {
-		try {
-			evalScript({code: sourceCode, src:path, 'data-module-name': name, 'name': name });
-		} catch (e) {
-			throw e;
-		}
-		finally{
+		//if source code was obtained before
+		if (sourceCode === true) {
 			console.groupEnd();
+			return modulePaths[path].exports;
+		}
+		//if found - eval script
+		else if (sourceCode) {
+			try {
+				evalScript({code: sourceCode, src:path, name: name });
+			} catch (e) {
+				throw e;
+			}
+			finally{
+				console.groupEnd();
+			}
+			return modulePaths[path].exports;
 		}
 
-		return getModuleExports(name);
+		console.groupEnd();
 	}
 
-	//close require group
-	console.groupEnd();
 
 
 	//save error to log
-	var scriptSrc = getCurrentScript().src;
-	scriptSrc = scriptSrc || global.location + '';
 	var error = new Error('Can’t find module `' + name + '`. Possibly the module is not installed or package.json is not provided');
 
 	errors.push(error);
@@ -277,29 +207,15 @@ function require(name, currentModule) {
 }
 
 
-/** retrieve module from storage by name */
-function getModuleExports(name){
-	var currDir = getDir(getCurrentScript().src);
-	var resolvedName = getAbsolutePath(currDir + name);
-	var md = modules[name] || modules[modulePaths[resolvedName]] || modules[modulePaths[resolvedName+'.js']];
-
-	if (md) return md.exports;
-}
-
-
 /**
  * eval & create fake script
- * @param {Object} obj {code: sourceCode, src:path, 'data-module-name': name, 'name': name}
+ * @param {Object} obj {code: sourceCode, src:path, 'name': name}
  */
 var depth = 0, maxDepth = 30;
 function evalScript(obj){
 	var name = obj.name;
 
-	//save module here (eval is a final step, so module is found)
-	saveModulePath(name, obj.src);
-
-
-	// console.groupCollapsed('eval', name, obj.src)
+	// console.groupCollapsed('eval', name, obj)
 
 	//we need to keep fake <script> tags in order to comply with inner require calls, referencing .currentScript and .src attributes
 	fakeCurrentScript = obj;
@@ -308,22 +224,15 @@ function evalScript(obj){
 		return this[name];
 	};
 
-	//create exports for the script (used within hookExports)
+	//create exports for the script
 	if (!('exports' in obj)) obj.exports = {};
 
 	//some module-related things
 	if (!obj.paths) obj.paths = [];
 
 
-	//save new module path
-	modulePaths[obj.src] = name;
-	modulePaths[obj.src.toLowerCase()] = name;
-	modulePaths[obj.getAttribute('src')] = name;
-	modules[name] = obj;
-	modules[unext(name)] = obj;
-	if (/(?:\/|index(?:\.js|\.json)?)$/.test(name)) {
-		modules[name.split(/[\\\/]/)[0]] = obj;
-	}
+	//save new module & path
+	modulePaths[obj.src] = obj;
 
 
 	try {
@@ -336,8 +245,7 @@ function evalScript(obj){
 		else {
 			if (depth++ > maxDepth) throw Error('Too deep');
 			var code = obj.code;
-
-			code = ';(function(module, exports, require, __filename, __dirname){' + code + '\n})(require.modules[\'' + name + '\'], require.modules[\'' + name + '\'].exports, function(name){return require(name, require.modules[\'' + name + '\'])}, \'' + obj.src + '\', \'' + getDir(obj.src) + '\');';
+			code = ';(function(module, exports, require, __filename, __dirname){' + code + '\n})(require.modulePaths[\'' + obj.src + '\'], require.modulePaths[\'' + obj.src + '\'].exports, function(name){return require(name, require.modulePaths[\'' + obj.src + '\'])}, \'' + obj.src + '\', \'' + getDir(obj.src) + '\');';
 
 			//add source urls
 			code += '\n//# sourceURL=' + obj.src;
@@ -361,12 +269,6 @@ function evalScript(obj){
 	}
 }
 
-
-/** Session storage source code paths saver */
-function saveModulePath(name, val){
-	modulePathsCache[name] = val;
-	sessionStorage.setItem(modulePathsCacheKey, JSON.stringify(modulePathsCache));
-}
 
 
 /** get current script tag, taking into account fake scripts running */
@@ -437,7 +339,6 @@ function requestFile(path){
 /** Return closest package to the path */
 function requestClosestPkg(path, force) {
 	var file;
-	if (path[path.length - 1] === '/') path = path.slice(0, -1);
 	while (path) {
 		pkg = requestPkg(path, force);
 		if (pkg) {
@@ -454,15 +355,19 @@ function requestClosestPkg(path, force) {
  */
 function requestPkg(path, force){
 	//return cached pkg
-	if (!force && packages[path]) {
-		return packages[path];
+	if (!force && packagePaths[path]) {
+		return packagePaths[path];
 	}
 
+	// console.groupCollapsed('requestPkg', path);
+
+	//clean dir, add file pointer
 	if (path[path.length - 1] === '/') path = path.slice(0, -1);
 	file = requestFile(path + '/package.json');
 
 	if (file) {
 		var result = JSON.parse(file);
+
 		//save path to package.json
 		result._dir = path + '/';
 
@@ -475,6 +380,10 @@ function requestPkg(path, force){
 
 		if (!packages[name]){
 			packages[name] = result;
+
+			//save path to fetch later
+			packagePaths[path] = result;
+			packagePaths[result._dir] = result;
 		}
 
 		//save all nested packages
@@ -488,19 +397,26 @@ function requestPkg(path, force){
 			var browserName, ext, parts;
 			for (var depName in result.browser){
 				browserName = result.browser[depName];
-				if (!browserName) continue;
 
-				parts = browserName.split('.');
-				ext = parts[parts.length - 1];
-				if (parts.length > 1 && /json|js|html/.test(ext)) {
-					packages[depName] = browserName.replace(/^\./, name);
-				}
-				//require bound pkg
-				else {
-					packages[depName] = requestPkg(browserName);
+				//save package mapping, if it isn’t a path
+				if (!packages[depName] && !isRelativePath(depName) && depName.split('/').length === 1) {
+					//save empty module
+					if (browserName === false) {
+						continue;
+					}
+					//in case of to-package redirect save redirect
+					else if (!isRelativePath(browserName)){
+						requestPkg(path + '/node_modules/' + browserName);
+						packages[depName] = browserName;
+					}
+					//in case of module reference - create faky package
+					else {
+						packages[depName] = getAbsolutePath(path + '/' + browserName);
+					}
 				}
 			}
 		}
+		//FIXME: load devdeps harmlessly
 		if (require.loadDevDeps) {
 			if (result.devDependencies){
 				for (var depName in result.devDependencies){
@@ -509,9 +425,17 @@ function requestPkg(path, force){
 			}
 		}
 
+		// console.groupEnd();
 		return result;
 	}
+
+	// console.groupEnd();
 	return;
+}
+
+/** whether path is relative */
+function isRelativePath(str){
+	return /^[\.]/.test(str);
 }
 
 
@@ -547,8 +471,8 @@ function normalizePath(path){
 	return path;
 }
 
-/** Get entry file from the package */
-function getEntry(pkg, name){
+/** Map module name to the proper one for the package */
+function getMappedName(pkg, name){
 	if (pkg) {
 		//get entry name, if none
 		if (!name) {
@@ -560,13 +484,16 @@ function getEntry(pkg, name){
 			name = pkg.main || 'index';
 		}
 
-		//map name, if map
+		//map name, if map is present
 		if (pkg.browser && typeof pkg.browser !== 'string') {
+			//FIXME: try to map `package/sub/module` → `./sub/module` and vv
 			name = pkg.browser[name] || pkg.browser[normalizePath(name)] || name;
 		}
+	} else {
+		if (!name) name = 'index';
 	}
 
-	return normalizePath(name);
+	return name;
 }
 
 
