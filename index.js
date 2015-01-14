@@ -60,13 +60,13 @@ try {
 	var currPath = getAbsolutePath('');
 
 	//reach root (initial) package.json (closest one to the current url)
-	var selfPkg = requestClosestPkg(getAbsolutePath(''), true);
+	var rootPkg = requestClosestPkg(getAbsolutePath(''), true);
 
 	//load browser builtins
 	var currDir = getDir(getAbsolutePath(getCurrentScript().src));
 	requestPkg(currDir);
 
-	if (!selfPkg) console.warn('Can’t find main package.json by `' + rootPath + '` nor by `' +  getAbsolutePath('') + '`.');
+	if (!rootPkg) console.warn('Can’t find main package.json by `' + rootPath + '` nor by `' +  getAbsolutePath('') + '`.');
 } catch (e){
 	throw e;
 }
@@ -133,6 +133,9 @@ function require(name, currentModule) {
 
 			//find package to resolve relative to
 			var targetPkg = packages[parts[0]] || requestPkg(currDir + 'node_modules/' + parts[0]);
+
+			//if target package with current dir isn’t found - try to reach from root dir
+			if (!targetPkg) targetPkg = requestPkg(rootPkg._dir + 'node_modules/' + parts[0]);
 
 			if (!targetPkg) {
 				console.groupEnd();

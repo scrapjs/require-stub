@@ -205,10 +205,6 @@ describe('require-stub cases', function(){
 		require('exporter/side');
 	});
 
-	it.skip('Runtime calls from different files', function(){
-		//TODO
-	});
-
 	it('Global process, Buffer', function(){
 		assert.equal(process, require('process'));
 		assert.equal(Buffer, require('buffer').Buffer);
@@ -224,4 +220,6 @@ describe('require-stub cases', function(){
 		assert.equal(a,b);
 		// assert.equal(b,c);
 	});
+
+	it('require root dir module from current (`test`) dir, which isn’t registered (in dev deps');
 });
