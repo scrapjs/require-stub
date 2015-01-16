@@ -6,6 +6,7 @@
  */
 
 
+//TODO: harness extensions to handle files properly
 //TODO: use https://github.com/lydell/resolve-url to resolve files
 //TODO: require html as a string
 //TODO: load remote requirements (github ones, like harthur/color)
@@ -29,6 +30,19 @@ require.fetchFromGithub = false;
 
 /** load dev deps (may cause a shitload of XHTTP traffic) */
 require.loadDevDeps = false;
+
+/** List of extension handlers for eval */
+require.extensions = {
+	'.json': function(){
+
+	},
+	'.js': function(){
+
+	},
+	'.html': function(){
+
+	}
+};
 
 
 /** paths-names dict, `modulePath: module` */
@@ -68,7 +82,8 @@ try {
 	requestPkg(currDir);
 
 	if (!rootPkg) console.warn('Can’t find main package.json by `' + rootPath + '` nor by `' +  getAbsolutePath('') + '`.');
-} catch (e){
+}
+catch (e){
 	throw e;
 }
 finally{
