@@ -139,7 +139,7 @@ function require(name, currentModule) {
 
 			if (!targetPkg) {
 				console.groupEnd();
-				throw new Error('Can’t find package.json for `' + parts + '`.');
+				throw new Error('Can’t find package.json for `' + name + '`.');
 			}
 
 			name = getMappedName(targetPkg, parts.slice(1).join('/'));
