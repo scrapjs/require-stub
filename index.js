@@ -6,6 +6,7 @@
  */
 
 
+//TODO: use https://github.com/lydell/resolve-url to resolve files
 //TODO: require html as a string
 //TODO: load remote requirements (github ones, like harthur/color)
 //TODO: add splashscreen or some notification of initial loading
