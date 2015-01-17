@@ -1,6 +1,6 @@
 {
   "name": "require-stub",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "Browser require via XMLHttpRequest, browserify compliant",
   "main": "stub.js",
   "browser": "index.js",
