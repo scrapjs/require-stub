@@ -6,9 +6,12 @@
  */
 
 
+//TODO: use browserify to make build
+//TODO: replace requestFile with require-file module
 //TODO: harness extensions to handle files properly
 //TODO: use https://github.com/lydell/resolve-url to resolve files
 //TODO: require html as a string
+//TODO: require yml/yaml as a string
 //TODO: load remote requirements (github ones, like harthur/color)
 //TODO: add splashscreen or some notification of initial loading
 //TODO: make it work in web-workers
@@ -94,6 +97,7 @@ finally{
 /** export function */
 global.require = require;
 
+
 /** require stub */
 function require(name, currentModule) {
 	if (!name) throw Error('Bad module name `' + name + '`', location);
@@ -169,7 +173,6 @@ function require(name, currentModule) {
 
 		//4. Request file by path
 		path = normalizePath(path);
-
 
 		//path includes extension
 		sourceCode = !!modulePaths[path] || requestFile(path);
@@ -503,9 +506,11 @@ function getMappedName(pkg, name){
 		}
 
 		//map name, if map is present
-		if (pkg.browser && typeof pkg.browser !== 'string') {
+		if (pkg.browser && typeof pkg.browser !== 'string' && pkg.browser[name] || pkg.browser[normalizePath(name)]) {
 			//FIXME: try to map `package/sub/module` → `./sub/module` and vv
 			name = pkg.browser[name] || pkg.browser[normalizePath(name)] || name;
+
+			if (isRelativePath(name)) name = getAbsolutePath(pkg._dir + name);
 		}
 	} else {
 		if (!name) name = 'index';

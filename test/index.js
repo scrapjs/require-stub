@@ -221,5 +221,7 @@ describe('require-stub cases', function(){
 		// assert.equal(b,c);
 	});
 
-	it('require root dir module from current (`test`) dir, which isn’t registered (in dev deps');
+	it('Require root dir module from current (`test`) dir, which isn’t registered (in dev deps');
+
+	it('Fix the case with relative browser-mapping in the [root] package, like `dom-lite: ./dom`');
 });
